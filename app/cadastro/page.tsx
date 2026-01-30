@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { createClient } from "@/lib/supabase/client";
+import Image from "next/image";
 
 export default function CadastroPage() {
   const router = useRouter();
@@ -93,12 +94,13 @@ export default function CadastroPage() {
     <div className="min-h-screen bg-background flex items-center justify-center px-4 sm:px-6 lg:px-8">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <Link href="/">
+          <Link href="/" className="flex items-center justify-center gap-4">
+          <Image src="/logo.svg" alt="FinTrack"  width={40} height={40} />
             <h1 className="text-3xl font-bold text-primary cursor-pointer">FinTrack</h1>
           </Link>
         </div>
 
-        <Card className="border-primary/20 bg-background">
+        <Card className="border-primary border-2 bg-background">
           <CardHeader>
             <CardTitle className="text-2xl text-foreground">Criar Conta</CardTitle>
             <CardDescription className="text-foreground/70">
@@ -144,7 +146,7 @@ export default function CadastroPage() {
                   maxLength={14}
                   value={formData.cpf}
                   onChange={handleCPFChange}
-                  className="bg-background border-primary/30 text-foreground focus:border-primary"
+                  className="bg-background border-primary/30 text-foreground focus:border-primary "
                 />
               </div>
 
@@ -219,7 +221,7 @@ export default function CadastroPage() {
 
               <Button
                 type="submit"
-                className="w-full bg-primary text-background hover:bg-primary/90"
+                className="w-full bg-primary text-background hover:bg-primary/90 font-semibold"
                 disabled={loading}
               >
                 {loading ? "Cadastrando..." : "Cadastrar"}
@@ -227,7 +229,7 @@ export default function CadastroPage() {
 
               <div className="text-center text-sm text-foreground/70">
                 Já tem uma conta?{" "}
-                <Link href="/login" className="text-primary hover:underline">
+                <Link href="/login" className="text-primary hover:underline font-semibold">
                   Faça login
                 </Link>
               </div>
