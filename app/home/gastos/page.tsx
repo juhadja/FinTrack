@@ -8,7 +8,12 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { createClient } from "@/lib/supabase/client";
 import Image from "next/image";
-import { ArrowLeft, Plus, X, TrendingDown, Pencil, Trash2 } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { ArrowLeft, Plus, X, TrendingDown, Pencil, Trash2, CalendarIcon } from "lucide-react";
+import { ptBR } from "date-fns/locale";
+import { format } from "date-fns";
 
 interface CategoriaGasto {
   id: string;
@@ -36,6 +41,7 @@ export default function GastosPage() {
     valor: "",
     categoria_id: "",
     descricao: "",
+    data: new Date(),
   });
 
   const fetchData = useCallback(async () => {
@@ -65,7 +71,7 @@ export default function GastosPage() {
 
   const openCreate = () => {
     setEditingId(null);
-    setFormData({ valor: "", categoria_id: "", descricao: "" });
+    setFormData({ valor: "", categoria_id: "", descricao: "", data: new Date() });
     setModalOpen(true);
   };
 
@@ -75,6 +81,7 @@ export default function GastosPage() {
       valor: String(gasto.valor),
       categoria_id: gasto.categoria_id ?? "",
       descricao: gasto.descricao ?? "",
+      data: new Date(gasto.data + "T00:00:00"),
     });
     setModalOpen(true);
   };
@@ -89,10 +96,12 @@ export default function GastosPage() {
     e.preventDefault();
     setLoading(true);
 
+    const dataFormatted = formData.data.toISOString().split("T")[0];
     const payload = {
-      valor: parseFloat(formData.valor),
+      valor: parseFloat(formData.valor.replace(",", ".")),
       categoria_id: formData.categoria_id || null,
       descricao: formData.descricao || null,
+      data: dataFormatted,
     };
 
     if (editingId) {
@@ -103,12 +112,11 @@ export default function GastosPage() {
       await supabase.from("gastos").insert({
         ...payload,
         user_id: user.id,
-        data: new Date().toISOString().split("T")[0],
       });
     }
 
     setModalOpen(false);
-    setFormData({ valor: "", categoria_id: "", descricao: "" });
+    setFormData({ valor: "", categoria_id: "", descricao: "", data: new Date() });
     setEditingId(null);
     setLoading(false);
     fetchData();
@@ -243,34 +251,67 @@ export default function GastosPage() {
             <CardContent>
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="valor" className="text-foreground">Valor (R$)</Label>
-                  <Input
-                    id="valor"
-                    type="number"
-                    step="0.01"
-                    min="0.01"
-                    placeholder="0,00"
-                    required
-                    value={formData.valor}
-                    onChange={(e) => setFormData({ ...formData, valor: e.target.value })}
-                    className="bg-background border-primary/30 text-foreground focus:border-primary"
-                  />
+                  <Label htmlFor="valor" className="text-foreground">Valor</Label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-primary font-semibold text-sm">R$</span>
+                    <Input
+                      id="valor"
+                      type="text"
+                      inputMode="decimal"
+                      placeholder="0,00"
+                      required
+                      value={formData.valor}
+                      onChange={(e) => {
+                        const value = e.target.value.replace(/[^0-9.,]/g, "");
+                        setFormData({ ...formData, valor: value });
+                      }}
+                      className="bg-background border-primary/30 text-foreground focus:border-primary pl-10"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-foreground">Data</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className="w-full justify-start text-left font-normal bg-background border-primary/30 text-foreground hover:bg-background hover:text-foreground"
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4 text-primary" />
+                        {format(formData.data, "dd/MM/yyyy")}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0 bg-background border-primary/30" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={formData.data}
+                        onSelect={(date) => date && setFormData({ ...formData, data: date })}
+                        locale={ptBR}
+                        initialFocus
+                      />
+                    </PopoverContent>
+                  </Popover>
                 </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="categoria" className="text-foreground">Categoria</Label>
                   {categorias.length > 0 ? (
-                    <select
-                      id="categoria"
+                    <Select
                       value={formData.categoria_id}
-                      onChange={(e) => setFormData({ ...formData, categoria_id: e.target.value })}
-                      className="w-full rounded-md border border-primary/30 bg-background text-foreground px-3 py-2 text-sm focus:border-primary focus:outline-none"
+                      onValueChange={(value) => setFormData({ ...formData, categoria_id: value })}
                     >
-                      <option value="">Selecione uma categoria</option>
-                      {categorias.map((c) => (
-                        <option key={c.id} value={c.id}>{c.nome}</option>
-                      ))}
-                    </select>
+                      <SelectTrigger className="w-full bg-background border-primary/30 text-foreground focus:border-primary cursor-pointer">
+                        <SelectValue placeholder="Selecione uma categoria" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-background border-primary/30">
+                        {categorias.map((c) => (
+                          <SelectItem key={c.id} value={c.id} className="cursor-pointer text-primary">
+                            {c.nome}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   ) : (
                     <div className="text-sm text-foreground/50">
                       Nenhuma categoria cadastrada.{" "}

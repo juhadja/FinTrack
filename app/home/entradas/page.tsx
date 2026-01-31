@@ -9,7 +9,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { createClient } from "@/lib/supabase/client";
 import Image from "next/image";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, Plus, X, DollarSign, Pencil, Trash2 } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { ArrowLeft, Plus, X, DollarSign, Pencil, Trash2, CalendarIcon } from "lucide-react";
+import { ptBR } from "date-fns/locale";
+import { format } from "date-fns";
 
 interface FonteRenda {
   id: string;
@@ -37,6 +41,7 @@ export default function EntradasPage() {
     valor: "",
     fonte_id: "",
     descricao: "",
+    data: new Date(),
   });
 
   const fetchData = useCallback(async () => {
@@ -66,7 +71,7 @@ export default function EntradasPage() {
 
   const openCreate = () => {
     setEditingId(null);
-    setFormData({ valor: "", fonte_id: "", descricao: "" });
+    setFormData({ valor: "", fonte_id: "", descricao: "", data: new Date() });
     setModalOpen(true);
   };
 
@@ -76,6 +81,7 @@ export default function EntradasPage() {
       valor: String(entrada.valor),
       fonte_id: entrada.fonte_id ?? "",
       descricao: entrada.descricao ?? "",
+      data: new Date(entrada.data + "T00:00:00"),
     });
     setModalOpen(true);
   };
@@ -90,10 +96,12 @@ export default function EntradasPage() {
     e.preventDefault();
     setLoading(true);
 
+    const dataFormatted = formData.data.toISOString().split("T")[0];
     const payload = {
       valor: parseFloat(formData.valor.replace(",", ".")),
       fonte_id: formData.fonte_id || null,
       descricao: formData.descricao || null,
+      data: dataFormatted,
     };
 
     if (editingId) {
@@ -104,12 +112,11 @@ export default function EntradasPage() {
       await supabase.from("entradas").insert({
         ...payload,
         user_id: user.id,
-        data: new Date().toISOString().split("T")[0],
       });
     }
 
     setModalOpen(false);
-    setFormData({ valor: "", fonte_id: "", descricao: "" });
+    setFormData({ valor: "", fonte_id: "", descricao: "", data: new Date() });
     setEditingId(null);
     setLoading(false);
     fetchData();
@@ -261,6 +268,30 @@ export default function EntradasPage() {
                       className="bg-background border-primary/30 text-foreground focus:border-primary pl-10"
                     />
                   </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-foreground">Data</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className="w-full justify-start text-left font-normal bg-background border-primary/30 text-foreground hover:bg-background hover:text-foreground"
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4 text-primary" />
+                        {format(formData.data, "dd/MM/yyyy")}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0 bg-background border-primary/30" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={formData.data}
+                        onSelect={(date) => date && setFormData({ ...formData, data: date })}
+                        locale={ptBR}
+                        initialFocus
+                      />
+                    </PopoverContent>
+                  </Popover>
                 </div>
 
                 <div className="space-y-2">

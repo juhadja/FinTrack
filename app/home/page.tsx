@@ -1,10 +1,9 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import LogoutButton from "@/components/logoutButton";
-import Image from "next/image";
 import Link from "next/link";
 import { DollarSign, ArrowRight, TrendingDown, Wallet } from "lucide-react";
+import { ExpensesByCategoryChart } from "@/components/expenses-by-category-chart";
 
 export default async function HomePage() {
   const supabase = await createClient();
@@ -53,25 +52,29 @@ export default async function HomePage() {
     gastosMes?.reduce((acc, e) => acc + Number(e.valor), 0) ?? 0;
   const saldoMes = totalMes - totalGastosMes;
 
+  // Buscar gastos por categoria do mês atual
+  const { data: gastosPorCategoria } = await supabase
+    .from("gastos")
+    .select("valor, categorias_gastos(nome)")
+    .gte("data", firstDayOfMonth.split("T")[0])
+    .lte("data", lastDayOfMonth.split("T")[0]);
+
+  const categoriasMap = new Map<string, number>();
+  gastosPorCategoria?.forEach((g) => {
+    const nome =
+      (g.categorias_gastos as unknown as { nome: string })?.nome ||
+      "Sem categoria";
+    categoriasMap.set(nome, (categoriasMap.get(nome) || 0) + Number(g.valor));
+  });
+  const chartData = Array.from(categoriasMap, ([categoria, total]) => ({
+    categoria,
+    total,
+  }));
+
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="w-full border-b border-primary/20">
-        <div className="bg-primary h-6"></div>
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center justify-center gap-4">
-              <Image src="/logo.svg" alt="FinTrack" width={40} height={40} />
-              <h1 className="text-2xl font-bold text-primary">FinTrack</h1>
-            </div>
-
-            <LogoutButton />
-          </div>
-        </div>
-      </header>
-
-      {/* Main Content */}
-      <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      <div className="h-6 bg-primary"></div>
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="space-y-8">
           
             {/* Welcome Card */}
@@ -112,7 +115,20 @@ export default async function HomePage() {
                 </p>
               </CardContent>
             </Card>
-          
+
+            {/* Gráfico de Gastos por Categoria */}
+            <Card className="border-primary bg-background/50">
+              <CardHeader>
+                <CardTitle className="text-xl text-foreground flex items-center gap-2">
+                  <TrendingDown className="text-red-500" size={24} />
+                  Gastos por Categoria
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ExpensesByCategoryChart data={chartData} />
+              </CardContent>
+            </Card>
+
           {/* Cards financeiros */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Link href="/home/entradas">
@@ -169,7 +185,7 @@ export default async function HomePage() {
             </Link>
           </div>
         </div>
-      </main>
+      </div>
     </div>
   );
 }
