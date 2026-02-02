@@ -7,13 +7,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { createClient } from "@/lib/supabase/client";
-import Image from "next/image";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
-import { ArrowLeft, Plus, X, DollarSign, Pencil, Trash2, CalendarIcon } from "lucide-react";
+import { Plus, X, DollarSign, Pencil, Trash2, CalendarIcon } from "lucide-react";
 import { ptBR } from "date-fns/locale";
 import { format } from "date-fns";
+import { AppHeader } from "@/components/app-header";
 
 interface FonteRenda {
   id: string;
@@ -128,108 +128,134 @@ export default function EntradasPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="w-full border-b border-primary/20">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <Image src="/logo.svg" alt="FinTrack" width={40} height={40} />
-              <h1 className="text-2xl font-bold text-primary">FinTrack</h1>
-            </div>
-            <Link href="/home">
-              <Button variant="outline" className="border-primary text-primary hover:bg-primary hover:text-background">
-                <ArrowLeft size={18} className="mr-2" /> Voltar
-              </Button>
-            </Link>
-          </div>
-        </div>
-      </header>
+      <AppHeader />
 
-      <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-12">
         <div className="space-y-6">
-          <div className="flex items-center justify-between">
-            <h2 className="text-3xl font-bold text-foreground">Entradas</h2>
-            <div className="flex gap-3">
-              <Link href="/home/fontes-renda">
-                <Button variant="outline" className="border-primary text-primary hover:bg-primary hover:text-background ">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <h2 className="text-2xl sm:text-3xl font-bold text-foreground">Entradas</h2>
+            <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
+              <Link href="/home/fontes-renda" className="w-full sm:w-auto">
+                <Button variant="outline" className="w-full sm:w-auto border-primary text-primary hover:bg-primary hover:text-background text-sm sm:text-base">
                   Gerenciar Fontes de Renda
                 </Button>
               </Link>
-              <Button onClick={openCreate} className="bg-primary text-background font-semibold hover:bg-primary/90">
+              <Button onClick={openCreate} className="w-full sm:w-auto bg-primary text-background font-semibold hover:bg-primary/90 text-sm sm:text-base">
                 <Plus size={18} className="mr-2" /> Adicionar Entrada
               </Button>
             </div>
           </div>
 
           {/* Totais */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
             <Card className="border-primary border-2 bg-background/50">
-              <CardHeader>
-                <CardTitle className="text-lg text-foreground flex items-center gap-2">
-                  <DollarSign className="text-primary" size={20} />
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base sm:text-lg text-foreground flex items-center gap-2">
+                  <DollarSign className="text-primary" size={18} />
                   Total do Mês
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-3xl font-bold text-primary">{formatCurrency(totalMes)}</p>
+                <p className="text-2xl sm:text-3xl font-bold text-primary">{formatCurrency(totalMes)}</p>
               </CardContent>
             </Card>
             <Card className="border-primary/20 bg-background/50">
-              <CardHeader>
-                <CardTitle className="text-lg text-foreground flex items-center gap-2">
-                  <DollarSign className="text-primary" size={20} />
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base sm:text-lg text-foreground flex items-center gap-2">
+                  <DollarSign className="text-primary" size={18} />
                   Total do Ano
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-3xl font-bold text-primary">{formatCurrency(totalAno)}</p>
+                <p className="text-2xl sm:text-3xl font-bold text-primary">{formatCurrency(totalAno)}</p>
               </CardContent>
             </Card>
           </div>
 
-          {/* Tabela de entradas */}
+          {/* Lista de entradas */}
           <Card className="border-primary/20 bg-background">
             <CardContent className="pt-6">
               {entradas.length === 0 ? (
                 <p className="text-foreground/50 text-center py-8">Nenhuma entrada cadastrada.</p>
               ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead>
-                      <tr className="border-b border-primary/20">
-                        <th className="text-left py-3 px-4 text-foreground font-semibold">Data</th>
-                        <th className="text-left py-3 px-4 text-foreground font-semibold">Valor</th>
-                        <th className="text-left py-3 px-4 text-foreground font-semibold">Fonte</th>
-                        <th className="text-left py-3 px-4 text-foreground font-semibold">Descrição</th>
-                        <th className="text-right py-3 px-4 text-foreground font-semibold">Ações</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {entradas.map((entrada) => (
-                        <tr key={entrada.id} className="border-b border-primary/10">
-                          <td className="py-3 px-4 text-foreground">
-                            {new Date(entrada.data + "T00:00:00").toLocaleDateString("pt-BR")}
-                          </td>
-                          <td className="py-3 px-4 text-primary font-semibold">
-                            {formatCurrency(Number(entrada.valor))}
-                          </td>
-                          <td className="py-3 px-4 text-foreground">{getFonteNome(entrada.fonte_id)}</td>
-                          <td className="py-3 px-4 text-foreground/70">{entrada.descricao || "—"}</td>
-                          <td className="py-3 px-4 text-right">
-                            <div className="flex justify-end gap-2">
-                              <Button variant="outline" size="sm" onClick={() => openEdit(entrada)} className="border-primary/30 text-primary hover:bg-primary hover:text-background">
-                                <Pencil size={16} />
-                              </Button>
-                              <Button variant="outline" size="sm" onClick={() => handleDelete(entrada.id)} className="border-red-500/30 text-red-500 hover:bg-red-500 hover:text-white">
-                                <Trash2 size={16} />
-                              </Button>
-                            </div>
-                          </td>
+                <>
+                  {/* Visualização Desktop - Tabela */}
+                  <div className="hidden md:block overflow-x-auto">
+                    <table className="w-full">
+                      <thead>
+                        <tr className="border-b border-primary/20">
+                          <th className="text-left py-3 px-4 text-foreground font-semibold">Data</th>
+                          <th className="text-left py-3 px-4 text-foreground font-semibold">Valor</th>
+                          <th className="text-left py-3 px-4 text-foreground font-semibold">Fonte</th>
+                          <th className="text-left py-3 px-4 text-foreground font-semibold">Descrição</th>
+                          <th className="text-right py-3 px-4 text-foreground font-semibold">Ações</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                      </thead>
+                      <tbody>
+                        {entradas.map((entrada) => (
+                          <tr key={entrada.id} className="border-b border-primary/10">
+                            <td className="py-3 px-4 text-foreground">
+                              {new Date(entrada.data + "T00:00:00").toLocaleDateString("pt-BR")}
+                            </td>
+                            <td className="py-3 px-4 text-primary font-semibold">
+                              {formatCurrency(Number(entrada.valor))}
+                            </td>
+                            <td className="py-3 px-4 text-foreground">{getFonteNome(entrada.fonte_id)}</td>
+                            <td className="py-3 px-4 text-foreground/70">{entrada.descricao || "—"}</td>
+                            <td className="py-3 px-4 text-right">
+                              <div className="flex justify-end gap-2">
+                                <Button variant="outline" size="sm" onClick={() => openEdit(entrada)} className="border-primary/30 text-primary hover:bg-primary hover:text-background">
+                                  <Pencil size={16} />
+                                </Button>
+                                <Button variant="outline" size="sm" onClick={() => handleDelete(entrada.id)} className="border-red-500/30 text-red-500 hover:bg-red-500 hover:text-white">
+                                  <Trash2 size={16} />
+                                </Button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {/* Visualização Mobile - Cards */}
+                  <div className="md:hidden space-y-3">
+                    {entradas.map((entrada) => (
+                      <div key={entrada.id} className="border border-primary/20 rounded-lg p-4 space-y-3">
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <p className="text-2xl font-bold text-primary">
+                              {formatCurrency(Number(entrada.valor))}
+                            </p>
+                            <p className="text-sm text-foreground/60 mt-1">
+                              {new Date(entrada.data + "T00:00:00").toLocaleDateString("pt-BR")}
+                            </p>
+                          </div>
+                          <div className="flex gap-2">
+                            <Button variant="outline" size="sm" onClick={() => openEdit(entrada)} className="border-primary/30 text-primary hover:bg-primary hover:text-background h-8 w-8 p-0">
+                              <Pencil size={14} />
+                            </Button>
+                            <Button variant="outline" size="sm" onClick={() => handleDelete(entrada.id)} className="border-red-500/30 text-red-500 hover:bg-red-500 hover:text-white h-8 w-8 p-0">
+                              <Trash2 size={14} />
+                            </Button>
+                          </div>
+                        </div>
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs text-foreground/50 font-medium">Fonte:</span>
+                            <span className="text-sm text-foreground">{getFonteNome(entrada.fonte_id)}</span>
+                          </div>
+                          {entrada.descricao && (
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs text-foreground/50 font-medium">Descrição:</span>
+                              <span className="text-sm text-foreground/70">{entrada.descricao}</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </>
               )}
             </CardContent>
           </Card>
@@ -238,20 +264,20 @@ export default function EntradasPage() {
 
       {/* Modal */}
       {modalOpen && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 px-4">
-          <Card className="w-full max-w-md border-primary/20 bg-background">
-            <CardHeader>
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <Card className="w-full max-w-md border-primary/20 bg-background max-h-[90vh] overflow-y-auto">
+            <CardHeader className="pb-4">
               <div className="flex items-center justify-between">
-                <CardTitle className="text-xl text-foreground">{editingId ? "Editar Entrada" : "Nova Entrada"}</CardTitle>
+                <CardTitle className="text-lg sm:text-xl text-foreground">{editingId ? "Editar Entrada" : "Nova Entrada"}</CardTitle>
                 <button onClick={() => setModalOpen(false)} className="text-foreground/50 hover:text-foreground">
                   <X size={20} />
                 </button>
               </div>
             </CardHeader>
-            <CardContent>
-              <form onSubmit={handleSubmit} className="space-y-4">
+            <CardContent className="pb-6">
+              <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="valor" className="text-foreground">Valor</Label>
+                  <Label htmlFor="valor" className="text-sm text-foreground">Valor</Label>
                   <div className="relative">
                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-primary font-semibold text-sm">R$</span>
                     <Input
@@ -271,7 +297,7 @@ export default function EntradasPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label className="text-foreground">Data</Label>
+                  <Label className="text-sm text-foreground">Data</Label>
                   <Popover>
                     <PopoverTrigger asChild>
                       <Button
@@ -295,7 +321,7 @@ export default function EntradasPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="fonte" className="text-foreground">Fonte de Renda</Label>
+                  <Label htmlFor="fonte" className="text-sm text-foreground">Fonte de Renda</Label>
                   {fontes.length > 0 ? (
                     <Select
                       value={formData.fonte_id}
@@ -323,7 +349,7 @@ export default function EntradasPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="descricao" className="text-foreground">Descrição (opcional)</Label>
+                  <Label htmlFor="descricao" className="text-sm text-foreground">Descrição (opcional)</Label>
                   <Input
                     id="descricao"
                     type="text"
@@ -334,7 +360,7 @@ export default function EntradasPage() {
                   />
                 </div>
 
-                <Button type="submit" className="w-full bg-primary text-background hover:bg-primary/90 font-semibold" disabled={loading}>
+                <Button type="submit" className="w-full bg-primary text-background hover:bg-primary/90 font-semibold mt-4" disabled={loading}>
                   {loading ? "Salvando..." : editingId ? "Salvar Alteração" : "Salvar Entrada"}
                 </Button>
               </form>

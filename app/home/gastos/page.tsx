@@ -7,15 +7,20 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { createClient } from "@/lib/supabase/client";
-import Image from "next/image";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
-import { ArrowLeft, Plus, X, TrendingDown, Pencil, Trash2, CalendarIcon } from "lucide-react";
+import { Plus, X, TrendingDown, Pencil, Trash2, CalendarIcon } from "lucide-react";
 import { ptBR } from "date-fns/locale";
 import { format } from "date-fns";
+import { AppHeader } from "@/components/app-header";
 
 interface CategoriaGasto {
+  id: string;
+  nome: string;
+}
+
+interface FormaPagamento {
   id: string;
   nome: string;
 }
@@ -26,6 +31,7 @@ interface Gasto {
   data: string;
   descricao: string | null;
   categoria_id: string | null;
+  forma_pagamento_id: string | null;
 }
 
 export default function GastosPage() {
@@ -34,12 +40,14 @@ export default function GastosPage() {
   const [totalAno, setTotalAno] = useState(0);
   const [modalOpen, setModalOpen] = useState(false);
   const [categorias, setCategorias] = useState<CategoriaGasto[]>([]);
+  const [formasPagamento, setFormasPagamento] = useState<FormaPagamento[]>([]);
   const [gastos, setGastos] = useState<Gasto[]>([]);
   const [loading, setLoading] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     valor: "",
     categoria_id: "",
+    forma_pagamento_id: "",
     descricao: "",
     data: new Date(),
   });
@@ -51,16 +59,18 @@ export default function GastosPage() {
     const firstDayYear = new Date(now.getFullYear(), 0, 1).toISOString().split("T")[0];
     const lastDayYear = new Date(now.getFullYear(), 11, 31).toISOString().split("T")[0];
 
-    const [mesRes, anoRes, categoriasRes, gastosRes] = await Promise.all([
+    const [mesRes, anoRes, categoriasRes, formasPagamentoRes, gastosRes] = await Promise.all([
       supabase.from("gastos").select("valor").gte("data", firstDayMonth).lte("data", lastDayMonth),
       supabase.from("gastos").select("valor").gte("data", firstDayYear).lte("data", lastDayYear),
       supabase.from("categorias_gastos").select("id, nome").order("nome"),
+      supabase.from("formas_pagamento").select("id, nome").order("nome"),
       supabase.from("gastos").select("*").order("data", { ascending: false }),
     ]);
 
     setTotalMes(mesRes.data?.reduce((acc, e) => acc + Number(e.valor), 0) ?? 0);
     setTotalAno(anoRes.data?.reduce((acc, e) => acc + Number(e.valor), 0) ?? 0);
     setCategorias(categoriasRes.data ?? []);
+    setFormasPagamento(formasPagamentoRes.data ?? []);
     setGastos(gastosRes.data ?? []);
   }, [supabase]);
 
@@ -71,7 +81,7 @@ export default function GastosPage() {
 
   const openCreate = () => {
     setEditingId(null);
-    setFormData({ valor: "", categoria_id: "", descricao: "", data: new Date() });
+    setFormData({ valor: "", categoria_id: "", forma_pagamento_id: "", descricao: "", data: new Date() });
     setModalOpen(true);
   };
 
@@ -80,6 +90,7 @@ export default function GastosPage() {
     setFormData({
       valor: String(gasto.valor),
       categoria_id: gasto.categoria_id ?? "",
+      forma_pagamento_id: gasto.forma_pagamento_id ?? "",
       descricao: gasto.descricao ?? "",
       data: new Date(gasto.data + "T00:00:00"),
     });
@@ -100,6 +111,7 @@ export default function GastosPage() {
     const payload = {
       valor: parseFloat(formData.valor.replace(",", ".")),
       categoria_id: formData.categoria_id || null,
+      forma_pagamento_id: formData.forma_pagamento_id || null,
       descricao: formData.descricao || null,
       data: dataFormatted,
     };
@@ -116,120 +128,154 @@ export default function GastosPage() {
     }
 
     setModalOpen(false);
-    setFormData({ valor: "", categoria_id: "", descricao: "", data: new Date() });
+    setFormData({ valor: "", categoria_id: "", forma_pagamento_id: "", descricao: "", data: new Date() });
     setEditingId(null);
     setLoading(false);
     fetchData();
   };
 
   const getCategoriaNome = (id: string | null) => categorias.find((c) => c.id === id)?.nome ?? "—";
+  const getFormaPagamentoNome = (id: string | null) => formasPagamento.find((f) => f.id === id)?.nome ?? "—";
   const formatCurrency = (value: number) =>
     value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="w-full border-b border-primary/20">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <Image src="/logo.svg" alt="FinTrack" width={40} height={40} />
-              <h1 className="text-2xl font-bold text-primary">FinTrack</h1>
-            </div>
-            <Link href="/home">
-              <Button variant="outline" className="border-primary text-primary hover:bg-primary hover:text-background">
-                <ArrowLeft size={18} className="mr-2" /> Voltar
-              </Button>
-            </Link>
-          </div>
-        </div>
-      </header>
+      <AppHeader />
 
-      <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 lg:py-12">
         <div className="space-y-6">
-          <div className="flex items-center justify-between">
-            <h2 className="text-3xl font-bold text-foreground">Gastos</h2>
-            <div className="flex gap-3">
-              <Link href="/home/categorias-gastos">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <h2 className="text-2xl sm:text-3xl font-bold text-foreground">Gastos</h2>
+            <div className="flex gap-2 sm:gap-3 w-full sm:w-auto">
+              {/* <Link href="/home/categorias-gastos">
                 <Button variant="outline" className="border-primary text-primary hover:bg-primary hover:text-background">
                   Gerenciar Categorias
                 </Button>
-              </Link>
-              <Button onClick={openCreate} className="bg-primary text-background font-semibold hover:bg-primary/90">
-                <Plus size={18} className="mr-2" /> Adicionar Gasto
+              </Link> */}
+              <Button onClick={openCreate} className="bg-primary text-background font-semibold hover:bg-primary/90 text-sm sm:text-base flex-1 sm:flex-none">
+                <Plus size={16} className="mr-1 sm:mr-2" />
+                <span className="hidden xs:inline">Adicionar </span>Gasto
               </Button>
             </div>
           </div>
 
           {/* Totais */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
             <Card className="border-primary border-2 bg-background/50">
-              <CardHeader>
-                <CardTitle className="text-lg text-foreground flex items-center gap-2">
-                  <TrendingDown className="text-red-500" size={20} />
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base sm:text-lg text-foreground flex items-center gap-2">
+                  <TrendingDown className="text-red-500" size={18} />
                   Total do Mês
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-3xl font-bold text-red-500">{formatCurrency(totalMes)}</p>
+                <p className="text-2xl sm:text-3xl font-bold text-red-500">{formatCurrency(totalMes)}</p>
               </CardContent>
             </Card>
             <Card className="border-primary/20 border-2 bg-background/50">
-              <CardHeader>
-                <CardTitle className="text-lg text-foreground flex items-center gap-2">
-                  <TrendingDown className="text-red-500" size={20} />
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base sm:text-lg text-foreground flex items-center gap-2">
+                  <TrendingDown className="text-red-500" size={18} />
                   Total do Ano
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-3xl font-bold text-red-500">{formatCurrency(totalAno)}</p>
+                <p className="text-2xl sm:text-3xl font-bold text-red-500">{formatCurrency(totalAno)}</p>
               </CardContent>
             </Card>
           </div>
 
-          {/* Tabela de gastos */}
+          {/* Lista de gastos */}
           <Card className="border-primary/20 bg-background">
             <CardContent className="pt-6">
               {gastos.length === 0 ? (
                 <p className="text-foreground/50 text-center py-8">Nenhum gasto cadastrado.</p>
               ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead>
-                      <tr className="border-b border-primary/20">
-                        <th className="text-left py-3 px-4 text-foreground font-semibold">Data</th>
-                        <th className="text-left py-3 px-4 text-foreground font-semibold">Valor</th>
-                        <th className="text-left py-3 px-4 text-foreground font-semibold">Categoria</th>
-                        <th className="text-left py-3 px-4 text-foreground font-semibold">Descrição</th>
-                        <th className="text-right py-3 px-4 text-foreground font-semibold">Ações</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {gastos.map((gasto) => (
-                        <tr key={gasto.id} className="border-b border-primary/10">
-                          <td className="py-3 px-4 text-foreground">
-                            {new Date(gasto.data + "T00:00:00").toLocaleDateString("pt-BR")}
-                          </td>
-                          <td className="py-3 px-4 text-red-500 font-semibold">
-                            {formatCurrency(Number(gasto.valor))}
-                          </td>
-                          <td className="py-3 px-4 text-foreground">{getCategoriaNome(gasto.categoria_id)}</td>
-                          <td className="py-3 px-4 text-foreground/70">{gasto.descricao || "—"}</td>
-                          <td className="py-3 px-4 text-right">
-                            <div className="flex justify-end gap-2">
-                              <Button variant="outline" size="sm" onClick={() => openEdit(gasto)} className="border-primary/30 text-primary hover:bg-primary hover:text-background">
-                                <Pencil size={16} />
-                              </Button>
-                              <Button variant="outline" size="sm" onClick={() => handleDelete(gasto.id)} className="border-red-500/30 text-red-500 hover:bg-red-500 hover:text-white">
-                                <Trash2 size={16} />
-                              </Button>
-                            </div>
-                          </td>
+                <>
+                  {/* Visualização Desktop - Tabela */}
+                  <div className="hidden md:block overflow-x-auto">
+                    <table className="w-full">
+                      <thead>
+                        <tr className="border-b border-primary/20">
+                          <th className="text-left py-3 px-4 text-foreground font-semibold">Data</th>
+                          <th className="text-left py-3 px-4 text-foreground font-semibold">Valor</th>
+                          <th className="text-left py-3 px-4 text-foreground font-semibold">Categoria</th>
+                          <th className="text-left py-3 px-4 text-foreground font-semibold">Forma de Pagamento</th>
+                          <th className="text-left py-3 px-4 text-foreground font-semibold">Descrição</th>
+                          <th className="text-right py-3 px-4 text-foreground font-semibold">Ações</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                      </thead>
+                      <tbody>
+                        {gastos.map((gasto) => (
+                          <tr key={gasto.id} className="border-b border-primary/10">
+                            <td className="py-3 px-4 text-foreground">
+                              {new Date(gasto.data + "T00:00:00").toLocaleDateString("pt-BR")}
+                            </td>
+                            <td className="py-3 px-4 text-red-500 font-semibold">
+                              {formatCurrency(Number(gasto.valor))}
+                            </td>
+                            <td className="py-3 px-4 text-foreground">{getCategoriaNome(gasto.categoria_id)}</td>
+                            <td className="py-3 px-4 text-foreground">{getFormaPagamentoNome(gasto.forma_pagamento_id)}</td>
+                            <td className="py-3 px-4 text-foreground/70">{gasto.descricao || "—"}</td>
+                            <td className="py-3 px-4 text-right">
+                              <div className="flex justify-end gap-2">
+                                <Button variant="outline" size="sm" onClick={() => openEdit(gasto)} className="border-primary/30 text-primary hover:bg-primary hover:text-background">
+                                  <Pencil size={16} />
+                                </Button>
+                                <Button variant="outline" size="sm" onClick={() => handleDelete(gasto.id)} className="border-red-500/30 text-red-500 hover:bg-red-500 hover:text-white">
+                                  <Trash2 size={16} />
+                                </Button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {/* Visualização Mobile - Cards */}
+                  <div className="md:hidden space-y-3">
+                    {gastos.map((gasto) => (
+                      <div key={gasto.id} className="border border-primary/20 rounded-lg p-4 space-y-3">
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <p className="text-2xl font-bold text-red-500">
+                              {formatCurrency(Number(gasto.valor))}
+                            </p>
+                            <p className="text-sm text-foreground/60 mt-1">
+                              {new Date(gasto.data + "T00:00:00").toLocaleDateString("pt-BR")}
+                            </p>
+                          </div>
+                          <div className="flex gap-2">
+                            <Button variant="outline" size="sm" onClick={() => openEdit(gasto)} className="border-primary/30 text-primary hover:bg-primary hover:text-background h-8 w-8 p-0">
+                              <Pencil size={14} />
+                            </Button>
+                            <Button variant="outline" size="sm" onClick={() => handleDelete(gasto.id)} className="border-red-500/30 text-red-500 hover:bg-red-500 hover:text-white h-8 w-8 p-0">
+                              <Trash2 size={14} />
+                            </Button>
+                          </div>
+                        </div>
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs text-foreground/50 font-medium">Categoria:</span>
+                            <span className="text-sm text-foreground">{getCategoriaNome(gasto.categoria_id)}</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs text-foreground/50 font-medium">Pagamento:</span>
+                            <span className="text-sm text-foreground">{getFormaPagamentoNome(gasto.forma_pagamento_id)}</span>
+                          </div>
+                          {gasto.descricao && (
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs text-foreground/50 font-medium">Descrição:</span>
+                              <span className="text-sm text-foreground/70">{gasto.descricao}</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </>
               )}
             </CardContent>
           </Card>
@@ -238,20 +284,20 @@ export default function GastosPage() {
 
       {/* Modal */}
       {modalOpen && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 px-4">
-          <Card className="w-full max-w-md border-primary/20 bg-background">
-            <CardHeader>
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <Card className="w-full max-w-md border-primary/20 bg-background max-h-[90vh] overflow-y-auto">
+            <CardHeader className="pb-4">
               <div className="flex items-center justify-between">
-                <CardTitle className="text-xl text-foreground">{editingId ? "Editar Gasto" : "Novo Gasto"}</CardTitle>
+                <CardTitle className="text-lg sm:text-xl text-foreground">{editingId ? "Editar Gasto" : "Novo Gasto"}</CardTitle>
                 <button onClick={() => setModalOpen(false)} className="text-foreground/50 hover:text-foreground">
                   <X size={20} />
                 </button>
               </div>
             </CardHeader>
-            <CardContent>
-              <form onSubmit={handleSubmit} className="space-y-4">
+            <CardContent className="pb-6">
+              <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="valor" className="text-foreground">Valor</Label>
+                  <Label htmlFor="valor" className="text-sm text-foreground">Valor</Label>
                   <div className="relative">
                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-primary font-semibold text-sm">R$</span>
                     <Input
@@ -271,7 +317,7 @@ export default function GastosPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label className="text-foreground">Data</Label>
+                  <Label className="text-sm text-foreground">Data</Label>
                   <Popover>
                     <PopoverTrigger asChild>
                       <Button
@@ -295,7 +341,7 @@ export default function GastosPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="categoria" className="text-foreground">Categoria</Label>
+                  <Label htmlFor="categoria" className="text-sm text-foreground">Categoria</Label>
                   {categorias.length > 0 ? (
                     <Select
                       value={formData.categoria_id}
@@ -323,7 +369,35 @@ export default function GastosPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="descricao" className="text-foreground">Descrição (opcional)</Label>
+                  <Label htmlFor="forma_pagamento" className="text-sm text-foreground">Forma de Pagamento</Label>
+                  {formasPagamento.length > 0 ? (
+                    <Select
+                      value={formData.forma_pagamento_id}
+                      onValueChange={(value) => setFormData({ ...formData, forma_pagamento_id: value })}
+                    >
+                      <SelectTrigger className="w-full bg-background border-primary/30 text-foreground focus:border-primary cursor-pointer">
+                        <SelectValue placeholder="Selecione uma forma de pagamento" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-background border-primary/30">
+                        {formasPagamento.map((f) => (
+                          <SelectItem key={f.id} value={f.id} className="cursor-pointer text-primary">
+                            {f.nome}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <div className="text-sm text-foreground/50">
+                      Nenhuma forma de pagamento cadastrada.{" "}
+                      <Link href="/home/formas-pagamento" className="text-primary hover:underline font-semibold">
+                        Cadastrar forma de pagamento
+                      </Link>
+                    </div>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="descricao" className="text-sm text-foreground">Descrição (opcional)</Label>
                   <Input
                     id="descricao"
                     type="text"
@@ -334,7 +408,7 @@ export default function GastosPage() {
                   />
                 </div>
 
-                <Button type="submit" className="w-full bg-primary text-background hover:bg-primary/90 font-semibold" disabled={loading}>
+                <Button type="submit" className="w-full bg-primary text-background hover:bg-primary/90 font-semibold mt-4" disabled={loading}>
                   {loading ? "Salvando..." : editingId ? "Salvar Alteração" : "Salvar Gasto"}
                 </Button>
               </form>

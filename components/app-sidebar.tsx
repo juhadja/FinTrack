@@ -9,6 +9,7 @@ import {
   Home,
   Landmark,
   Tags,
+  CreditCard,
 } from "lucide-react";
 import {
   Sidebar,
@@ -53,7 +54,7 @@ export function AppSidebar() {
                 <SidebarMenuButton asChild isActive={pathname === "/home"}>
                   <Link href="/home">
                     <Home />
-                    <span>Dashboard</span>
+                    Dashboard
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
@@ -107,7 +108,8 @@ export function AppSidebar() {
               <Collapsible
                 defaultOpen={
                   pathname.startsWith("/home/gastos") ||
-                  pathname.startsWith("/home/categorias-gastos")
+                  pathname.startsWith("/home/categorias-gastos") ||
+                  pathname.startsWith("/home/formas-pagamento")
                 }
                 className="group/collapsible"
               >
@@ -140,6 +142,17 @@ export function AppSidebar() {
                           <Link href="/home/categorias-gastos">
                             <Tags />
                             <span>Categorias de Gastos</span>
+                          </Link>
+                        </SidebarMenuSubButton>
+                      </SidebarMenuSubItem>
+                      <SidebarMenuSubItem>
+                        <SidebarMenuSubButton
+                          asChild
+                          isActive={pathname === "/home/formas-pagamento"}
+                        >
+                          <Link href="/home/formas-pagamento">
+                            <CreditCard />
+                            <span>Formas de Pagamento</span>
                           </Link>
                         </SidebarMenuSubButton>
                       </SidebarMenuSubItem>

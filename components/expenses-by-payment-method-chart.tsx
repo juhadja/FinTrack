@@ -11,24 +11,24 @@ import {
 } from "@/components/ui/chart";
 
 const COLORS = [
-  "#ef4444",
-  "#f97316",
-  "#eab308",
-  "#22c55e",
-  "#06b6d4",
   "#3b82f6",
   "#8b5cf6",
   "#ec4899",
   "#f43f5e",
   "#14b8a6",
+  "#ef4444",
+  "#f97316",
+  "#eab308",
+  "#22c55e",
+  "#06b6d4",
 ];
 
-type CategoryData = {
-  categoria: string;
+type PaymentMethodData = {
+  formaPagamento: string;
   total: number;
 };
 
-export function ExpensesByCategoryChart({ data }: { data: CategoryData[] }) {
+export function ExpensesByPaymentMethodChart({ data }: { data: PaymentMethodData[] }) {
   if (data.length === 0) {
     return (
       <p className="text-foreground/50 text-center py-8">
@@ -38,15 +38,15 @@ export function ExpensesByCategoryChart({ data }: { data: CategoryData[] }) {
   }
 
   const chartConfig = data.reduce<ChartConfig>((acc, item, index) => {
-    acc[item.categoria] = {
-      label: item.categoria,
+    acc[item.formaPagamento] = {
+      label: item.formaPagamento,
       color: COLORS[index % COLORS.length],
     };
     return acc;
   }, {});
 
   const chartData = data.map((item, index) => ({
-    name: item.categoria,
+    name: item.formaPagamento,
     value: item.total,
     fill: COLORS[index % COLORS.length],
   }));

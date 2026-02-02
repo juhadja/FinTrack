@@ -10,27 +10,27 @@ import { createClient } from "@/lib/supabase/client";
 import { Plus, X, Pencil, Trash2 } from "lucide-react";
 import { AppHeader } from "@/components/app-header";
 
-interface CategoriaGasto {
+interface FormaPagamento {
   id: string;
   nome: string;
   created_at: string;
 }
 
-export default function CategoriasGastosPage() {
+export default function FormasPagamentoPage() {
   const supabase = createClient();
-  const [categorias, setCategorias] = useState<CategoriaGasto[]>([]);
+  const [formasPagamento, setFormasPagamento] = useState<FormaPagamento[]>([]);
   const [modalOpen, setModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [nome, setNome] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const fetchCategorias = useCallback(async () => {
-    const { data } = await supabase.from("categorias_gastos").select("*").order("nome");
-    setCategorias(data ?? []);
+  const fetchFormasPagamento = useCallback(async () => {
+    const { data } = await supabase.from("formas_pagamento").select("*").order("nome");
+    setFormasPagamento(data ?? []);
   }, [supabase]);
 
   useEffect(() => {
-    fetchCategorias();
+    fetchFormasPagamento();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -40,9 +40,9 @@ export default function CategoriasGastosPage() {
     setModalOpen(true);
   };
 
-  const openEdit = (categoria: CategoriaGasto) => {
-    setEditingId(categoria.id);
-    setNome(categoria.nome);
+  const openEdit = (formaPagamento: FormaPagamento) => {
+    setEditingId(formaPagamento.id);
+    setNome(formaPagamento.nome);
     setModalOpen(true);
   };
 
@@ -51,24 +51,24 @@ export default function CategoriasGastosPage() {
     setLoading(true);
 
     if (editingId) {
-      await supabase.from("categorias_gastos").update({ nome }).eq("id", editingId);
+      await supabase.from("formas_pagamento").update({ nome }).eq("id", editingId);
     } else {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
-      await supabase.from("categorias_gastos").insert({ user_id: user.id, nome });
+      await supabase.from("formas_pagamento").insert({ user_id: user.id, nome });
     }
 
     setModalOpen(false);
     setNome("");
     setEditingId(null);
     setLoading(false);
-    fetchCategorias();
+    fetchFormasPagamento();
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Tem certeza que deseja excluir esta categoria?")) return;
-    await supabase.from("categorias_gastos").delete().eq("id", id);
-    fetchCategorias();
+    if (!confirm("Tem certeza que deseja excluir esta forma de pagamento?")) return;
+    await supabase.from("formas_pagamento").delete().eq("id", id);
+    fetchFormasPagamento();
   };
 
   return (
@@ -78,16 +78,17 @@ export default function CategoriasGastosPage() {
       <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 lg:py-12">
         <div className="space-y-6">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-            <h2 className="text-2xl sm:text-3xl font-bold text-foreground">Categorias de Gastos</h2>
+            <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold text-foreground">Formas de Pagamento</h2>
             <Button onClick={openCreate} className="bg-primary text-background hover:bg-primary/90 font-semibold text-sm sm:text-base w-full sm:w-auto">
-              <Plus size={16} className="mr-1 sm:mr-2" /> Nova Categoria
+              <Plus size={16} className="mr-1 sm:mr-2" />
+              <span className="hidden xs:inline">Nova </span>Forma de Pagamento
             </Button>
           </div>
 
           <Card className="border-primary/20 bg-background">
             <CardContent className="pt-6">
-              {categorias.length === 0 ? (
-                <p className="text-foreground/50 text-center py-8">Nenhuma categoria cadastrada.</p>
+              {formasPagamento.length === 0 ? (
+                <p className="text-foreground/50 text-center py-8">Nenhuma forma de pagamento cadastrada.</p>
               ) : (
                 <div className="overflow-x-auto">
                   <table className="w-full">
@@ -98,15 +99,15 @@ export default function CategoriasGastosPage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {categorias.map((cat) => (
-                        <tr key={cat.id} className="border-b border-primary/10">
-                          <td className="py-3 px-4 text-foreground">{cat.nome}</td>
+                      {formasPagamento.map((forma) => (
+                        <tr key={forma.id} className="border-b border-primary/10">
+                          <td className="py-3 px-4 text-foreground">{forma.nome}</td>
                           <td className="py-3 px-4 text-right">
                             <div className="flex justify-end gap-2">
-                              <Button variant="outline" size="sm" onClick={() => openEdit(cat)} className="border-primary/30 text-primary hover:bg-primary hover:text-background">
+                              <Button variant="outline" size="sm" onClick={() => openEdit(forma)} className="border-primary/30 text-primary hover:bg-primary hover:text-background">
                                 <Pencil size={16} />
                               </Button>
-                              <Button variant="outline" size="sm" onClick={() => handleDelete(cat.id)} className="border-red-500/30 text-red-500 hover:bg-red-500 hover:text-white">
+                              <Button variant="outline" size="sm" onClick={() => handleDelete(forma.id)} className="border-red-500/30 text-red-500 hover:bg-red-500 hover:text-white">
                                 <Trash2 size={16} />
                               </Button>
                             </div>
@@ -129,7 +130,7 @@ export default function CategoriasGastosPage() {
             <CardHeader>
               <div className="flex items-center justify-between">
                 <CardTitle className="text-xl text-foreground">
-                  {editingId ? "Editar Categoria" : "Nova Categoria de Gastos"}
+                  {editingId ? "Editar Forma de Pagamento" : "Nova Forma de Pagamento"}
                 </CardTitle>
                 <button onClick={() => setModalOpen(false)} className="text-foreground/50 hover:text-foreground">
                   <X size={20} />
@@ -143,7 +144,7 @@ export default function CategoriasGastosPage() {
                   <Input
                     id="nome"
                     type="text"
-                    placeholder="Ex: Alimentação, Transporte..."
+                    placeholder="Ex: Dinheiro, Cartão de Crédito, PIX..."
                     required
                     value={nome}
                     onChange={(e) => setNome(e.target.value)}
