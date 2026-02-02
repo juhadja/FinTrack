@@ -1,9 +1,19 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardAction,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import Link from "next/link";
-import { DollarSign, ArrowRight, TrendingDown, Wallet } from "lucide-react";
+import { DollarSign, ArrowRight, TrendingDown, Wallet, Car } from "lucide-react";
+import { SidebarTrigger } from "@/components/ui/sidebar";
 import { ExpensesByCategoryChart } from "@/components/expenses-by-category-chart";
+import { Badge } from "@/components/ui/badge";
 
 export default async function HomePage() {
   const supabase = await createClient();
@@ -73,73 +83,98 @@ export default async function HomePage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="h-6 bg-primary"></div>
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="space-y-8">
-          
-            {/* Welcome Card */}
-            <Card className="border-none bg-background ">
-              <CardHeader className="justify-center">
-                <CardTitle className="text-5xl text-foreground ">
-                  Bem-vindo,
-                  <strong className="text-primary">
-                    {" "}
-                    {nome} {sobrenome}
-                  </strong>
-                  !
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="mx-auto">
-                <p className="text-foreground/70 text-lg">
-                  Gerencie suas finanças de forma simples e prática.
-                </p>
-              </CardContent>
-            </Card>
+      <header className="flex items-center p-4 border-b border-primary/30 justify-between px-10">
+        <div className="flex gap-2 items-center xl:hidden ">
+          <SidebarTrigger size='lg'/>
+          <h1 className="text-2xl font-bold text-primary">FinTrack</h1>
+        </div>
+        <h1 className="text-2xl font-bold text-primary hidden xl:block">FinTrack</h1>
+        <div className="hidden md:flex gap-2 items-center">
+          <p>Bem vindo,</p>
+          <Badge className="bg-foreground/20 text-foreground text-sm font-normal">
+            <p className="mx-1">
+              {nome} {sobrenome}
+            </p>
+          </Badge>
+        </div>
+      </header>
 
-            {/* Card Saldo */}
-            <Card className="border-primary bg-background/50">
-              <CardHeader>
-                <CardTitle className="text-xl text-foreground flex items-center gap-2">
-                  <Wallet className="text-foreground" size={24} />
-                  Saldo do Mês
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
+      <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <div className="space-y-8">
+          {/* Welcome Card */}
+          {/* <Card className="border-none bg-background ">
+            <CardHeader className="justify-center">
+              <CardTitle className="text-5xl text-foreground ">
+                Bem-vindo,
+                <strong className="text-primary">
+                  {" "}
+                  {nome} {sobrenome}
+                </strong>
+                !
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="mx-auto">
+              <p className="text-foreground/70 text-lg">
+                Gerencie suas finanças de forma simples e prática.
+              </p>
+            </CardContent>
+          </Card> */}
+
+          {/* Card Saldo */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 items-center">
+          <Card className="border-primary/30 bg-primary/10 col-span-2">
+            <CardHeader>
+              <CardDescription className=" text-foreground flex items-center gap-4 ">
+                <Wallet className="text-foreground" size={16} />
+                Saldo
+              </CardDescription>
+              <CardTitle>
                 <p
-                  className={`text-3xl font-bold ${saldoMes >= 0 ? "text-primary" : "text-red-500"}`}
+                  className={`text-4xl font-semibold ${saldoMes >= 0 ? "text-primary" : "text-red-500"}`}
                 >
                   {saldoMes.toLocaleString("pt-BR", {
                     style: "currency",
                     currency: "BRL",
                   })}
                 </p>
-              </CardContent>
-            </Card>
-
-            {/* Gráfico de Gastos por Categoria */}
-            <Card className="border-primary bg-background/50">
-              <CardHeader>
-                <CardTitle className="text-xl text-foreground flex items-center gap-2">
-                  <TrendingDown className="text-red-500" size={24} />
-                  Gastos por Categoria
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ExpensesByCategoryChart data={chartData} />
-              </CardContent>
-            </Card>
-
-          {/* Cards financeiros */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <Link href="/home/entradas">
+              </CardTitle>
+              <CardAction className="flex flex-col gap-3 items-end">
+                <Badge variant="outline" className="border-primary">
+                  <p className="text-primary">
+                    {" "}
+                    +
+                    {totalMes.toLocaleString("pt-BR", {
+                      style: "currency",
+                      currency: "BRL",
+                    })}
+                  </p>
+                </Badge>
+                <Badge variant="outline" className="border-red-500">
+                  <p className="text-red-500">
+                    {" "}
+                    -
+                    {totalGastosMes.toLocaleString("pt-BR", {
+                      style: "currency",
+                      currency: "BRL",
+                    })}
+                  </p>
+                </Badge>
+              </CardAction>
+            </CardHeader>
+            <CardFooter className="flex-col items-start gap-1.5 text-sm">
+              <div className="text-foreground/70 flex gap-2">
+                Saldo atual do mês
+              </div>
+            </CardFooter>
+          </Card>
+          <Link href="/home/entradas" className="col-span-2 md:col-span-1">
               <Card className="border-primary bg-background/50 hover:ring-2 hover:ring-primary cursor-pointer">
                 <CardHeader>
-                  <CardTitle className="text-xl text-foreground flex items-center gap-2">
-                    <DollarSign className="text-primary" size={24} />
+                  <CardDescription className="text-foreground flex items-center gap-2">
+                    <DollarSign className="text-primary" size={20} />
                     Entradas do Mês
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
+                  </CardDescription>
+                  <CardTitle>
                   <div className="flex items-center justify-between">
                     <p className="text-3xl font-bold text-primary">
                       {totalMes.toLocaleString("pt-BR", {
@@ -147,25 +182,23 @@ export default async function HomePage() {
                         currency: "BRL",
                       })}
                     </p>
-                    <div className="relative group">
-                      <ArrowRight className="text-primary" size={24} />
-                      <span className="absolute bottom-full right-0 mb-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap rounded bg-primary text-background text-xs font-semibold px-2 py-1 pointer-events-none">
-                        Gerenciar Entradas
-                      </span>
-                    </div>
                   </div>
-                </CardContent>
+                </CardTitle>
+                </CardHeader>
+                    <CardFooter className="flex justify-between">
+                      <p>Gerenciar Entradas</p>
+                      <ArrowRight className="text-primary" size={20} />
+                    </CardFooter> 
               </Card>
             </Link>
-            <Link href="/home/gastos">
+            <Link href="/home/gastos" className="col-span-2 md:col-span-1">
               <Card className="border-primary bg-background/50 hover:ring-2 hover:ring-primary cursor-pointer">
                 <CardHeader>
-                  <CardTitle className="text-xl text-foreground flex items-center gap-2">
-                    <TrendingDown className="text-red-500" size={24} />
+                  <CardDescription className="text-foreground flex items-center gap-2">
+                    <TrendingDown className="text-red-500" size={20} />
                     Gastos do Mês
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
+                  </CardDescription>
+                  <CardTitle>
                   <div className="flex items-center justify-between">
                     <p className="text-3xl font-bold text-red-500">
                       {totalGastosMes.toLocaleString("pt-BR", {
@@ -173,19 +206,33 @@ export default async function HomePage() {
                         currency: "BRL",
                       })}
                     </p>
-                    <div className="relative group">
-                      <ArrowRight className="text-red-500" size={24} />
-                      <span className="absolute bottom-full right-0 mb-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap rounded bg-primary text-background text-xs font-semibold px-2 py-1 pointer-events-none">
-                        Gerenciar Gastos
-                      </span>
-                    </div>
                   </div>
-                </CardContent>
+                </CardTitle>
+                </CardHeader>
+                <CardFooter className="flex justify-between">
+                      <p>Gerenciar Gastos</p>
+                      <ArrowRight className="text-red-500" size={20} />
+                    </CardFooter> 
               </Card>
             </Link>
           </div>
+
+          {/* Gráfico de Gastos por Categoria */}
+          <Card className="border-primary bg-background/50 hover:bg-primary/10">
+            <CardHeader>
+              <CardTitle className="text-xl text-foreground flex items-center gap-2">
+                <TrendingDown className="text-red-500" size={2} />
+                Gastos por Categoria
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ExpensesByCategoryChart data={chartData} />
+            </CardContent>
+          </Card>
+
+          {/* Cards financeiros */}
         </div>
-      </div>
+      </main>
     </div>
   );
 }

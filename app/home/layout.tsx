@@ -1,4 +1,4 @@
-import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
 
 export default function HomeLayout({
@@ -10,9 +10,6 @@ export default function HomeLayout({
     <SidebarProvider>
       <AppSidebar />
       <main className="flex-1 min-h-screen">
-        <div className="p-2 md:hidden">
-          <SidebarTrigger />
-        </div>
         {children}
       </main>
     </SidebarProvider>
