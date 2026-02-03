@@ -31,6 +31,12 @@ interface Gasto {
   categoria_id: string | null;
   forma_pagamento_id: string | null;
   fatura_id: string | null;
+  // Campos de parcelamento
+  eh_parcelado: boolean;
+  numero_parcelas: number | null;
+  numero_parcela_atual: number | null;
+  valor_total_parcelamento: number | null;
+  gasto_parcelado_grupo_id: string | null;
 }
 
 const MESES = [
@@ -89,33 +95,113 @@ function MobileMonthSelector({
           </p>
         </div>
 
-        {/* Lista de gastos do mês */}
-        {gastosMes.length === 0 ? (
-          <p className="text-foreground/50 text-center py-6 text-sm">
-            Nenhum gasto neste período.
-          </p>
-        ) : (
-          <div className="space-y-2">
-            {gastosMes.map((gasto) => (
-              <div
-                key={gasto.id}
-                className="border border-primary/10 rounded-lg p-2.5 flex items-center justify-between gap-2"
-              >
-                <div className="flex-1 min-w-0">
-                  <p className="font-semibold text-foreground text-sm truncate">
-                    {gasto.descricao || "Sem descrição"}
+        {/* Tabs de À vista vs Parcelamentos */}
+        <Tabs defaultValue="avista" className="w-full">
+          <TabsList className="w-full bg-background/50 border border-primary/20 mb-3">
+            <TabsTrigger
+              value="avista"
+              className="flex-1 data-[state=active]:bg-primary/20 data-[state=active]:text-primary text-xs"
+            >
+              Compras à Vista
+            </TabsTrigger>
+            <TabsTrigger
+              value="parcelamentos"
+              className="flex-1 data-[state=active]:bg-primary/20 data-[state=active]:text-primary text-xs"
+            >
+              Parcelamentos
+            </TabsTrigger>
+          </TabsList>
+
+          {/* Tab: À Vista */}
+          <TabsContent value="avista" className="mt-0">
+            {(() => {
+              const gastosAvista = gastosMes.filter(g => !g.eh_parcelado || g.eh_parcelado === null || g.eh_parcelado === undefined);
+              const totalAvista = gastosAvista.reduce((acc, g) => acc + Number(g.valor), 0);
+
+              return (
+                <div className="space-y-2">
+                  <p className="text-xs text-foreground/70 px-1">
+                    Total à vista: <span className="font-semibold text-red-500">{formatCurrency(totalAvista)}</span>
                   </p>
-                  <p className="text-xs text-foreground/60">
-                    {new Date(gasto.data + "T00:00:00").toLocaleDateString("pt-BR")}
-                  </p>
+                  {gastosAvista.length === 0 ? (
+                    <p className="text-foreground/50 text-center py-6 text-sm">
+                      Nenhuma compra à vista neste período.
+                    </p>
+                  ) : (
+                    <div className="space-y-2">
+                      {gastosAvista.map((gasto) => (
+                        <div
+                          key={gasto.id}
+                          className="border border-primary/50 rounded-lg p-2.5 flex items-center justify-between gap-2"
+                        >
+                          <div className="flex-1 min-w-0">
+                            <p className="font-semibold text-foreground text-sm truncate">
+                              {gasto.descricao || "Sem descrição"}
+                            </p>
+                            <p className="text-xs text-foreground/60">
+                              {new Date(gasto.data + "T00:00:00").toLocaleDateString("pt-BR")}
+                            </p>
+                          </div>
+                          <p className="text-base font-bold text-red-500 shrink-0">
+                            {formatCurrency(Number(gasto.valor))}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
-                <p className="text-base font-bold text-red-500 shrink-0">
-                  {formatCurrency(Number(gasto.valor))}
-                </p>
-              </div>
-            ))}
-          </div>
-        )}
+              );
+            })()}
+          </TabsContent>
+
+          {/* Tab: Parcelamentos */}
+          <TabsContent value="parcelamentos" className="mt-0">
+            {(() => {
+              const gastosParcelados = gastosMes.filter(g => g.eh_parcelado === true);
+              const totalParcelado = gastosParcelados.reduce((acc, g) => acc + Number(g.valor), 0);
+
+              return (
+                <div className="space-y-2">
+                  <p className="text-xs text-foreground/70 px-1">
+                    Total em parcelas: <span className="font-semibold text-red-500">{formatCurrency(totalParcelado)}</span>
+                  </p>
+                  {gastosParcelados.length === 0 ? (
+                    <p className="text-foreground/50 text-center py-6 text-sm">
+                      Nenhum parcelamento neste período.
+                    </p>
+                  ) : (
+                    <div className="space-y-2">
+                      {gastosParcelados.map((gasto) => (
+                        <div
+                          key={gasto.id}
+                          className="border border-primary/10 rounded-lg p-2.5 flex items-center justify-between gap-2 bg-primary/10"
+                        >
+                          <div className="flex-1 min-w-0">
+                            <p className="font-semibold text-foreground text-sm truncate">
+                              {gasto.descricao || "Sem descrição"}
+                            </p>
+                            <p className="text-[10px] text-foreground/60">
+                              {new Date(gasto.data + "T00:00:00").toLocaleDateString("pt-BR")}
+                            </p>
+                            <p className="text-[10px] text-primary/70 font-medium mt-0.5">
+                              Parcela {gasto.numero_parcela_atual}/{gasto.numero_parcelas}
+                              {gasto.valor_total_parcelamento &&
+                                ` • Total: ${formatCurrency(gasto.valor_total_parcelamento)}`
+                              }
+                            </p>
+                          </div>
+                          <p className="text-base font-bold text-red-500 shrink-0">
+                            {formatCurrency(Number(gasto.valor))}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   );
@@ -490,35 +576,113 @@ export default function FaturasPage() {
                                           </p>
                                         </div>
 
-                                        {/* Lista de gastos do mês */}
-                                        {gastosMes.length === 0 ? (
-                                          <p className="text-foreground/50 text-center py-4 text-sm">
-                                            Nenhum gasto neste período.
-                                          </p>
-                                        ) : (
-                                          <div className="space-y-2">
-                                            {gastosMes.map((gasto) => (
-                                              <div
-                                                key={gasto.id}
-                                                className="border border-primary/10 rounded-lg p-3 flex items-center justify-between gap-2"
-                                              >
-                                                <div className="flex-1 min-w-0">
-                                                  <p className="font-semibold text-foreground text-base truncate">
-                                                    {gasto.descricao || "Sem descrição"}
+                                        {/* Tabs de À vista vs Parcelamentos */}
+                                        <Tabs defaultValue="avista" className="w-full">
+                                          <TabsList className="w-full bg-background/50 border border-primary/20 mb-3">
+                                            <TabsTrigger
+                                              value="avista"
+                                              className="flex-1 data-[state=active]:bg-primary/20 data-[state=active]:text-primary"
+                                            >
+                                              Compras à Vista
+                                            </TabsTrigger>
+                                            <TabsTrigger
+                                              value="parcelamentos"
+                                              className="flex-1 data-[state=active]:bg-primary/20 data-[state=active]:text-primary"
+                                            >
+                                              Parcelamentos
+                                            </TabsTrigger>
+                                          </TabsList>
+
+                                          {/* Tab: À Vista */}
+                                          <TabsContent value="avista" className="mt-0">
+                                            {(() => {
+                                              const gastosAvista = gastosMes.filter(g => !g.eh_parcelado || g.eh_parcelado === null || g.eh_parcelado === undefined);
+                                              const totalAvista = gastosAvista.reduce((acc, g) => acc + Number(g.valor), 0);
+
+                                              return (
+                                                <div className="space-y-2">
+                                                  <p className="text-sm text-foreground/70 px-1">
+                                                    Total à vista: <span className="font-semibold text-red-500">{formatCurrency(totalAvista)}</span>
                                                   </p>
-                                                  <p className="text-sm text-foreground/60">
-                                                    {new Date(
-                                                      gasto.data + "T00:00:00"
-                                                    ).toLocaleDateString("pt-BR")}
-                                                  </p>
+                                                  {gastosAvista.length === 0 ? (
+                                                    <p className="text-foreground/50 text-center py-4 text-sm">
+                                                      Nenhuma compra à vista neste período.
+                                                    </p>
+                                                  ) : (
+                                                    <div className="space-y-2">
+                                                      {gastosAvista.map((gasto) => (
+                                                        <div
+                                                          key={gasto.id}
+                                                          className="border border-primary/50 rounded-lg p-3 flex items-center justify-between gap-2"
+                                                        >
+                                                          <div className="flex-1 min-w-0">
+                                                            <p className="font-semibold text-foreground text-base truncate">
+                                                              {gasto.descricao || "Sem descrição"}
+                                                            </p>
+                                                            <p className="text-sm text-foreground/60">
+                                                              {new Date(gasto.data + "T00:00:00").toLocaleDateString("pt-BR")}
+                                                            </p>
+                                                          </div>
+                                                          <p className="text-lg font-bold text-red-500 shrink-0">
+                                                            {formatCurrency(Number(gasto.valor))}
+                                                          </p>
+                                                        </div>
+                                                      ))}
+                                                    </div>
+                                                  )}
                                                 </div>
-                                                <p className="text-lg font-bold text-red-500 shrink-0">
-                                                  {formatCurrency(Number(gasto.valor))}
-                                                </p>
-                                              </div>
-                                            ))}
-                                          </div>
-                                        )}
+                                              );
+                                            })()}
+                                          </TabsContent>
+
+                                          {/* Tab: Parcelamentos */}
+                                          <TabsContent value="parcelamentos" className="mt-0">
+                                            {(() => {
+                                              const gastosParcelados = gastosMes.filter(g => g.eh_parcelado === true);
+                                              const totalParcelado = gastosParcelados.reduce((acc, g) => acc + Number(g.valor), 0);
+
+                                              return (
+                                                <div className="space-y-2">
+                                                  <p className="text-sm text-foreground/70 px-1">
+                                                    Total em parcelas: <span className="font-semibold text-red-500">{formatCurrency(totalParcelado)}</span>
+                                                  </p>
+                                                  {gastosParcelados.length === 0 ? (
+                                                    <p className="text-foreground/50 text-center py-4 text-sm">
+                                                      Nenhum parcelamento neste período.
+                                                    </p>
+                                                  ) : (
+                                                    <div className="space-y-2">
+                                                      {gastosParcelados.map((gasto) => (
+                                                        <div
+                                                          key={gasto.id}
+                                                          className="border border-primary/10 rounded-lg p-3 flex items-center justify-between gap-2 bg-primary/10"
+                                                        >
+                                                          <div className="flex-1 min-w-0">
+                                                            <p className="font-semibold text-foreground text-base truncate">
+                                                              {gasto.descricao || "Sem descrição"}
+                                                            </p>
+                                                            <p className="text-xs text-foreground/60">
+                                                              {new Date(gasto.data + "T00:00:00").toLocaleDateString("pt-BR")}
+                                                            </p>
+                                                            <p className="text-xs text-primary/70 font-medium mt-1">
+                                                              Parcela {gasto.numero_parcela_atual}/{gasto.numero_parcelas}
+                                                              {gasto.valor_total_parcelamento &&
+                                                                ` • Total: ${formatCurrency(gasto.valor_total_parcelamento)}`
+                                                              }
+                                                            </p>
+                                                          </div>
+                                                          <p className="text-lg font-bold text-red-500 shrink-0">
+                                                            {formatCurrency(Number(gasto.valor))}
+                                                          </p>
+                                                        </div>
+                                                      ))}
+                                                    </div>
+                                                  )}
+                                                </div>
+                                              );
+                                            })()}
+                                          </TabsContent>
+                                        </Tabs>
                                       </div>
                                     </TabsContent>
                                   );

@@ -15,6 +15,8 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Checkbox } from "@/components/ui/checkbox";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { Plus, X, TrendingDown, Pencil, Trash2, CalendarIcon } from "lucide-react";
 import { ptBR } from "date-fns/locale";
 import { format } from "date-fns";
@@ -44,6 +46,12 @@ interface Gasto {
   categoria_id: string | null;
   forma_pagamento_id: string | null;
   fatura_id: string | null;
+  // Campos de parcelamento
+  eh_parcelado: boolean;
+  numero_parcelas: number | null;
+  numero_parcela_atual: number | null;
+  valor_total_parcelamento: number | null;
+  gasto_parcelado_grupo_id: string | null;
 }
 
 export default function GastosPage() {
@@ -64,6 +72,9 @@ export default function GastosPage() {
     fatura_id: "",
     descricao: "",
     data: new Date(),
+    // Campos de parcelamento
+    eh_parcelado: false,
+    numero_parcelas: "1",
   });
 
   const fetchData = useCallback(async () => {
@@ -100,11 +111,26 @@ export default function GastosPage() {
 
   const openCreate = () => {
     setEditingId(null);
-    setFormData({ valor: "", categoria_id: "", forma_pagamento_id: "", fatura_id: "", descricao: "", data: new Date() });
+    setFormData({
+      valor: "",
+      categoria_id: "",
+      forma_pagamento_id: "",
+      fatura_id: "",
+      descricao: "",
+      data: new Date(),
+      eh_parcelado: false,
+      numero_parcelas: "1",
+    });
     setModalOpen(true);
   };
 
   const openEdit = (gasto: Gasto) => {
+    // IMPORTANTE: Não permitir edição de gastos parcelados
+    if (gasto.eh_parcelado) {
+      alert("Gastos parcelados não podem ser editados. Delete e recrie se necessário.");
+      return;
+    }
+
     setEditingId(gasto.id);
     setFormData({
       valor: String(gasto.valor),
@@ -113,14 +139,39 @@ export default function GastosPage() {
       fatura_id: gasto.fatura_id ?? "",
       descricao: gasto.descricao ?? "",
       data: new Date(gasto.data + "T00:00:00"),
+      eh_parcelado: false,
+      numero_parcelas: "1",
     });
     setModalOpen(true);
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Tem certeza que deseja excluir este gasto?")) return;
-    const supabase = createClient();
-    await supabase.from("gastos").delete().eq("id", id);
+    const gastoParaDeletar = gastos.find(g => g.id === id);
+
+    if (gastoParaDeletar?.eh_parcelado) {
+      const confirmacao = confirm(
+        `Este gasto faz parte de um parcelamento de ${gastoParaDeletar.numero_parcelas}x.\n\nDeseja deletar TODAS as parcelas ou apenas esta?\n\nOK = Deletar todas as parcelas\nCancelar = Deletar apenas esta parcela`
+      );
+
+      const supabase = createClient();
+
+      if (confirmacao) {
+        // Deletar todas as parcelas do grupo
+        await supabase
+          .from("gastos")
+          .delete()
+          .eq("gasto_parcelado_grupo_id", gastoParaDeletar.gasto_parcelado_grupo_id);
+      } else {
+        // Deletar apenas esta parcela
+        await supabase.from("gastos").delete().eq("id", id);
+      }
+    } else {
+      // Gasto normal, deletar normalmente
+      if (!confirm("Tem certeza que deseja excluir este gasto?")) return;
+      const supabase = createClient();
+      await supabase.from("gastos").delete().eq("id", id);
+    }
+
     fetchData();
   };
 
@@ -130,28 +181,131 @@ export default function GastosPage() {
 
     const supabase = createClient();
     const dataFormatted = formData.data.toISOString().split("T")[0];
-    const payload = {
-      valor: parseFloat(formData.valor.replace(",", ".")),
-      categoria_id: formData.categoria_id || null,
-      forma_pagamento_id: formData.forma_pagamento_id || null,
-      fatura_id: formData.fatura_id || null,
-      descricao: formData.descricao || null,
-      data: dataFormatted,
-    };
+    const valorTotal = parseFloat(formData.valor.replace(",", "."));
 
+    // Validação básica
+    if (isNaN(valorTotal)) {
+      alert("Valor inválido");
+      setLoading(false);
+      return;
+    }
+
+    // Validações de parcelamento
+    if (formData.eh_parcelado) {
+      const numParcelas = parseInt(formData.numero_parcelas);
+      if (numParcelas < 1 || numParcelas > 12 || isNaN(numParcelas)) {
+        alert("Número de parcelas inválido. Escolha entre 1 e 12.");
+        setLoading(false);
+        return;
+      }
+      if (!formData.fatura_id) {
+        alert("Selecione uma fatura para o parcelamento.");
+        setLoading(false);
+        return;
+      }
+      const valorParcela = valorTotal / numParcelas;
+      if (valorParcela < 0.01) {
+        alert("Valor da parcela muito baixo. Aumente o valor ou reduza o número de parcelas.");
+        setLoading(false);
+        return;
+      }
+    }
+
+    // Se for edição, não permite alterar para parcelado (bloqueia na função openEdit)
+    // Mas permite atualizar outros campos
     if (editingId) {
+      const payload = {
+        valor: valorTotal,
+        categoria_id: formData.categoria_id || null,
+        forma_pagamento_id: formData.forma_pagamento_id || null,
+        fatura_id: formData.fatura_id || null,
+        descricao: formData.descricao || null,
+        data: dataFormatted,
+        // Mantém os valores de parcelamento existentes (não altera)
+      };
       await supabase.from("gastos").update(payload).eq("id", editingId);
     } else {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) { setLoading(false); return; }
-      await supabase.from("gastos").insert({
-        ...payload,
-        user_id: user.id,
-      });
+      if (!user) {
+        setLoading(false);
+        return;
+      }
+
+      // Se NÃO for parcelado, criar um único gasto (lógica antiga)
+      if (!formData.eh_parcelado) {
+        const payload = {
+          user_id: user.id,
+          valor: valorTotal,
+          categoria_id: formData.categoria_id || null,
+          forma_pagamento_id: formData.forma_pagamento_id || null,
+          fatura_id: formData.fatura_id || null,
+          descricao: formData.descricao || null,
+          data: dataFormatted,
+          eh_parcelado: false,
+          numero_parcelas: null,
+          numero_parcela_atual: null,
+          valor_total_parcelamento: null,
+          gasto_parcelado_grupo_id: null,
+        };
+        await supabase.from("gastos").insert(payload);
+      } else {
+        // LÓGICA DE PARCELAMENTO: criar múltiplas parcelas
+        const numParcelas = parseInt(formData.numero_parcelas);
+        const valorParcela = valorTotal / numParcelas;
+        const dataInicial = new Date(formData.data);
+
+        // Gerar UUID único para agrupar as parcelas
+        const grupoId = crypto.randomUUID();
+
+        // Criar array de parcelas
+        const parcelas = [];
+        for (let i = 0; i < numParcelas; i++) {
+          // Calcular a data de cada parcela (mês subsequente)
+          const dataParcela = new Date(dataInicial);
+          dataParcela.setMonth(dataParcela.getMonth() + i);
+
+          const payload = {
+            user_id: user.id,
+            valor: Number(valorParcela.toFixed(2)), // Arredondar para 2 casas
+            categoria_id: formData.categoria_id || null,
+            forma_pagamento_id: formData.forma_pagamento_id || null,
+            fatura_id: formData.fatura_id,
+            descricao: formData.descricao
+              ? `${formData.descricao} (${i + 1}/${numParcelas})`
+              : `Parcela ${i + 1}/${numParcelas}`,
+            data: dataParcela.toISOString().split("T")[0],
+            eh_parcelado: true,
+            numero_parcelas: numParcelas,
+            numero_parcela_atual: i + 1,
+            valor_total_parcelamento: valorTotal,
+            gasto_parcelado_grupo_id: grupoId,
+          };
+          parcelas.push(payload);
+        }
+
+        // Inserir todas as parcelas de uma vez
+        const { error } = await supabase.from("gastos").insert(parcelas);
+
+        if (error) {
+          console.error("Erro ao criar parcelas:", error);
+          alert("Erro ao criar parcelamento. Tente novamente.");
+          setLoading(false);
+          return;
+        }
+      }
     }
 
     setModalOpen(false);
-    setFormData({ valor: "", categoria_id: "", forma_pagamento_id: "", fatura_id: "", descricao: "", data: new Date() });
+    setFormData({
+      valor: "",
+      categoria_id: "",
+      forma_pagamento_id: "",
+      fatura_id: "",
+      descricao: "",
+      data: new Date(),
+      eh_parcelado: false,
+      numero_parcelas: "1",
+    });
     setEditingId(null);
     setLoading(false);
     fetchData();
@@ -274,12 +428,34 @@ export default function GastosPage() {
               ) : gastos.length === 0 ? (
                 <p className="text-foreground/50 text-center py-8">Nenhum gasto cadastrado.</p>
               ) : (
-                <Tabs defaultValue={mesDefault} className="w-full **:[[role=tablist]]:overflow-visible [&_button[aria-label]]:hidden">
-                  <TabsList className="w-full h-auto justify-start overflow-x-auto flex-nowrap bg-background/50 border border-primary/20 mb-4 [&>button]:shrink-0 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+                <>
+                  {/* Select de Mês - Mobile */}
+                  <div className="md:hidden mb-4">
+                    <Select value={mesDefault} onValueChange={(value) => {
+                      const tabElement = document.querySelector(`[data-value="${value}"]`) as HTMLElement;
+                      if (tabElement) tabElement.click();
+                    }}>
+                      <SelectTrigger className="w-full bg-primary border-primary/30 text-background font-semibold focus:border-primary">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="bg-background border-primary/30">
+                        {mesesDisponiveis.map((mesAno) => (
+                          <SelectItem key={mesAno} value={mesAno} className="cursor-pointer text-primary capitalize">
+                            {formatarNomeMes(mesAno)}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                <Tabs defaultValue={mesDefault} className="w-full">
+                  {/* Tabs - Desktop apenas */}
+                  <TabsList className="hidden md:flex w-full h-auto justify-start overflow-x-auto flex-nowrap bg-background/50 border border-primary/20 mb-4 [&>button]:shrink-0 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
                     {mesesDisponiveis.map((mesAno) => (
                       <TabsTrigger
                         key={mesAno}
                         value={mesAno}
+                        data-value={mesAno}
                         className="data-[state=active]:bg-primary data-[state=active]:text-background capitalize whitespace-nowrap"
                       >
                         {formatarNomeMes(mesAno)}
@@ -287,8 +463,9 @@ export default function GastosPage() {
                     ))}
                   </TabsList>
 
+                  <div className="w-full">
                   {mesesDisponiveis.map((mesAno) => (
-                    <TabsContent key={mesAno} value={mesAno} className="mt-0">
+                    <TabsContent key={mesAno} value={mesAno} className="mt-0 md:mt-0">
                       {/* Visualização Desktop - Tabela */}
                       <div className="hidden md:block overflow-x-auto">
                         <table className="w-full">
@@ -373,7 +550,9 @@ export default function GastosPage() {
                       </div>
                     </TabsContent>
                   ))}
+                  </div>
                 </Tabs>
+                </>
               )}
             </CardContent>
           </Card>
@@ -383,7 +562,7 @@ export default function GastosPage() {
       {/* Modal */}
       {modalOpen && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <Card className="w-full max-w-md border-primary/20 bg-background max-h-[90vh] overflow-y-auto">
+          <Card className="w-full max-w-md border-primary/20 bg-background">
             <CardHeader className="pb-4">
               <div className="flex items-center justify-between">
                 <CardTitle className="text-lg sm:text-xl text-foreground">{editingId ? "Editar Gasto" : "Novo Gasto"}</CardTitle>
@@ -392,7 +571,8 @@ export default function GastosPage() {
                 </button>
               </div>
             </CardHeader>
-            <CardContent className="pb-6">
+            <ScrollArea className="h-[calc(90vh-120px)] max-h-[600px]">
+              <CardContent className="pb-6">
               <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="valor" className="text-sm text-foreground">Valor</Label>
@@ -535,6 +715,53 @@ export default function GastosPage() {
                   </div>
                 )}
 
+                {/* Checkbox de Parcelamento - Exibido apenas quando Crédito e Fatura forem selecionados */}
+                {formData.forma_pagamento_id &&
+                  formasPagamento.find(f => f.id === formData.forma_pagamento_id)?.nome === "Crédito" &&
+                  formData.fatura_id && (
+                  <div className="space-y-2">
+                    <div className="flex items-center space-x-2 border border-primary/20 rounded-md p-3">
+                      <Checkbox
+                        id="eh_parcelado"
+                        checked={formData.eh_parcelado}
+                        onCheckedChange={(checked) => setFormData({
+                          ...formData,
+                          eh_parcelado: checked === true,
+                          numero_parcelas: checked === true ? formData.numero_parcelas : "1"
+                        })}
+                        className="cursor-pointer"
+                      />
+                      <Label htmlFor="eh_parcelado" className="text-sm text-foreground cursor-pointer">
+                        Compra parcelada
+                      </Label>
+                    </div>
+
+                    {/* Select de Número de Parcelas - Exibido apenas se checkbox marcado */}
+                    {formData.eh_parcelado && (
+                      <div className="space-y-2">
+                        <Label htmlFor="numero_parcelas" className="text-sm text-foreground">
+                          Em quantas vezes?
+                        </Label>
+                        <Select
+                          value={formData.numero_parcelas}
+                          onValueChange={(value) => setFormData({ ...formData, numero_parcelas: value })}
+                        >
+                          <SelectTrigger className="w-full bg-background border-primary/30 text-foreground focus:border-primary">
+                            <SelectValue placeholder="Selecione" />
+                          </SelectTrigger>
+                          <SelectContent className="bg-background border-primary/30">
+                            {Array.from({ length: 12 }, (_, i) => i + 1).map((num) => (
+                              <SelectItem key={num} value={String(num)} className="cursor-pointer text-foreground">
+                                {num}x
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 <div className="space-y-2">
                   <Label htmlFor="descricao" className="text-sm text-foreground">Descrição (opcional)</Label>
                   <Input
@@ -552,6 +779,7 @@ export default function GastosPage() {
                 </Button>
               </form>
             </CardContent>
+            </ScrollArea>
           </Card>
         </div>
       )}
