@@ -7,24 +7,23 @@ export default function LandingPage() {
   return (
     <div className="min-h-screen bg-background flex flex-col">
       {/* Header */}
-      <header className="w-full border-b border-white/20 mb-20">
-      <div className="h-6 bg-primary">
-      </div>
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6 ">
+      <header className="w-full border-b border-white/20 mb-12 sm:mb-20">
+        <div className="h-4 sm:h-6 bg-primary"></div>
+        <div className="max-w-4xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6">
           <div className="flex items-center justify-between">
-            <div className="flex items-center justify-center gap-5">
-              <Image src="/logo.svg" alt="FinTrack" width={40} height={40} />
-            <h1 className="text-2xl font-bold text-primary">FinTrack</h1>
+            <div className="flex items-center gap-2 sm:gap-5">
+              <Image src="/logo.svg" alt="FinTrack" width={32} height={32} className="sm:w-10 sm:h-10" />
+              <h1 className="text-xl sm:text-2xl font-bold text-primary">FinTrack</h1>
             </div>
-            <div className="flex gap-3">
+            <div className="flex gap-2 sm:gap-3">
               <Link href="/login">
-                <Button variant="outline" className="border-primary text-primary hover:bg-primary hover:text-background">
-                  Fazer Login
+                <Button variant="outline" size="sm" className="border-primary text-primary hover:bg-primary hover:text-background text-xs sm:text-sm px-3 sm:px-4">
+                  Login
                 </Button>
               </Link>
               <Link href="/cadastro">
-                <Button className="bg-primary text-background hover:bg-primary/90">
-                  Cadastre-se
+                <Button size="sm" className="bg-primary text-background hover:bg-primary/90 text-xs sm:text-sm px-3 sm:px-4">
+                  Cadastrar
                 </Button>
               </Link>
             </div>
@@ -46,14 +45,14 @@ export default function LandingPage() {
             </p>
           </div>
 
-          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-            <Link href="/cadastro">
-              <Button size="lg" className="bg-primary text-background hover:bg-primary/90 w-full sm:w-auto">
+          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center w-full sm:w-auto">
+            <Link href="/cadastro" className="w-full sm:w-auto">
+              <Button size="lg" className="bg-primary text-background hover:bg-primary/90 w-full">
                 Comece Agora Gratuitamente
               </Button>
             </Link>
-            <Link href="/login">
-              <Button size="lg" variant="outline" className="border-primary text-primary hover:bg-primary hover:text-background w-full sm:w-auto">
+            <Link href="/login" className="w-full sm:w-auto">
+              <Button size="lg" variant="outline" className="border-primary text-primary hover:bg-primary hover:text-background w-full">
                 Já tenho conta
               </Button>
             </Link>
