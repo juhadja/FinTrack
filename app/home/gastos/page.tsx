@@ -17,7 +17,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Plus, X, TrendingDown, Pencil, Trash2, CalendarIcon } from "lucide-react";
+import { Plus, X, TrendingDown, Pencil, Trash2, CalendarIcon, Filter, XCircle } from "lucide-react";
 import { ptBR } from "date-fns/locale";
 import { format } from "date-fns";
 import { AppHeader } from "@/components/app-header";
@@ -77,6 +77,17 @@ export default function GastosPage() {
     numero_parcelas: "1",
   });
   const [mesSelecionado, setMesSelecionado] = useState<string>("");
+
+  // Estados de filtros
+  const [filtros, setFiltros] = useState({
+    dataInicio: undefined as Date | undefined,
+    dataFim: undefined as Date | undefined,
+    valorMin: "",
+    valorMax: "",
+    categoria_id: "",
+    forma_pagamento_id: "",
+  });
+  const [mostrarFiltros, setMostrarFiltros] = useState(false);
 
   const fetchData = useCallback(async () => {
     setLoadingData(true);
@@ -333,8 +344,68 @@ export default function GastosPage() {
   const formatCurrency = (value: number) =>
     value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
-  // Agrupar gastos por mês
-  const gastosPorMes = gastos.reduce((acc, gasto) => {
+  // Função para limpar filtros
+  const limparFiltros = () => {
+    setFiltros({
+      dataInicio: undefined,
+      dataFim: undefined,
+      valorMin: "",
+      valorMax: "",
+      categoria_id: "",
+      forma_pagamento_id: "",
+    });
+  };
+
+  // Função para aplicar filtros aos gastos
+  const aplicarFiltros = (gastosParaFiltrar: Gasto[]) => {
+    return gastosParaFiltrar.filter((gasto) => {
+      // Filtro por data início
+      if (filtros.dataInicio) {
+        const dataGasto = new Date(gasto.data + "T00:00:00");
+        const dataInicio = new Date(filtros.dataInicio);
+        dataInicio.setHours(0, 0, 0, 0);
+        if (dataGasto < dataInicio) return false;
+      }
+
+      // Filtro por data fim
+      if (filtros.dataFim) {
+        const dataGasto = new Date(gasto.data + "T00:00:00");
+        const dataFim = new Date(filtros.dataFim);
+        dataFim.setHours(23, 59, 59, 999);
+        if (dataGasto > dataFim) return false;
+      }
+
+      // Filtro por valor mínimo
+      if (filtros.valorMin) {
+        const valorMin = parseFloat(filtros.valorMin.replace(",", "."));
+        if (!isNaN(valorMin) && Number(gasto.valor) < valorMin) return false;
+      }
+
+      // Filtro por valor máximo
+      if (filtros.valorMax) {
+        const valorMax = parseFloat(filtros.valorMax.replace(",", "."));
+        if (!isNaN(valorMax) && Number(gasto.valor) > valorMax) return false;
+      }
+
+      // Filtro por categoria
+      if (filtros.categoria_id && gasto.categoria_id !== filtros.categoria_id) {
+        return false;
+      }
+
+      // Filtro por forma de pagamento
+      if (filtros.forma_pagamento_id && gasto.forma_pagamento_id !== filtros.forma_pagamento_id) {
+        return false;
+      }
+
+      return true;
+    });
+  };
+
+  // Aplicar filtros aos gastos antes de agrupar
+  const gastosFiltrados = aplicarFiltros(gastos);
+
+  // Agrupar gastos filtrados por mês
+  const gastosPorMes = gastosFiltrados.reduce((acc, gasto) => {
     const data = new Date(gasto.data + "T00:00:00");
     const mesAno = format(data, "yyyy-MM");
     if (!acc[mesAno]) {
@@ -354,6 +425,20 @@ export default function GastosPage() {
     const nomeMes = format(data, "MMMM", { locale: ptBR });
     return nomeMes.charAt(0).toUpperCase() + nomeMes.slice(1);
   };
+
+  // Contar filtros ativos
+  const contarFiltrosAtivos = () => {
+    let count = 0;
+    if (filtros.dataInicio) count++;
+    if (filtros.dataFim) count++;
+    if (filtros.valorMin) count++;
+    if (filtros.valorMax) count++;
+    if (filtros.categoria_id) count++;
+    if (filtros.forma_pagamento_id) count++;
+    return count;
+  };
+
+  const filtrosAtivos = contarFiltrosAtivos();
 
   return (
     <div className="min-h-screen bg-background">
@@ -423,6 +508,183 @@ export default function GastosPage() {
             </div>
           )}
 
+          {/* Filtros de busca */}
+          <Card className="border-primary/20 bg-background">
+            <CardHeader
+              className="cursor-pointer hover:bg-primary/5 transition-colors pb-3"
+              onClick={() => setMostrarFiltros(!mostrarFiltros)}
+            >
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-base sm:text-lg text-foreground flex items-center gap-2">
+                  <Filter size={18} className="text-primary" />
+                  Filtros de Busca
+                  {filtrosAtivos > 0 && (
+                    <span className="text-xs bg-primary text-background px-2 py-1 rounded-full font-semibold">
+                      {filtrosAtivos}
+                    </span>
+                  )}
+                </CardTitle>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-primary hover:text-primary/80"
+                >
+                  {mostrarFiltros ? "Ocultar" : "Mostrar"}
+                </Button>
+              </div>
+            </CardHeader>
+
+            {mostrarFiltros && (
+              <CardContent className="pt-0">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {/* Filtro de Data Início */}
+                  <div className="space-y-2">
+                    <Label className="text-sm text-foreground">Data Início</Label>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          className="w-full justify-start text-left font-normal bg-background border-primary/30 text-foreground hover:bg-background hover:text-foreground"
+                        >
+                          <CalendarIcon className="mr-2 h-4 w-4 text-primary" />
+                          {filtros.dataInicio ? format(filtros.dataInicio, "dd/MM/yyyy") : "Selecione uma data"}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0 bg-background border-primary/30" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={filtros.dataInicio}
+                          onSelect={(date) => setFiltros({ ...filtros, dataInicio: date })}
+                          locale={ptBR}
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+
+                  {/* Filtro de Data Fim */}
+                  <div className="space-y-2">
+                    <Label className="text-sm text-foreground">Data Fim</Label>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          className="w-full justify-start text-left font-normal bg-background border-primary/30 text-foreground hover:bg-background hover:text-foreground"
+                        >
+                          <CalendarIcon className="mr-2 h-4 w-4 text-primary" />
+                          {filtros.dataFim ? format(filtros.dataFim, "dd/MM/yyyy") : "Selecione uma data"}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0 bg-background border-primary/30" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={filtros.dataFim}
+                          onSelect={(date) => setFiltros({ ...filtros, dataFim: date })}
+                          locale={ptBR}
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+
+                  {/* Filtro de Valor Mínimo */}
+                  <div className="space-y-2">
+                    <Label className="text-sm text-foreground">Valor Mínimo</Label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-primary font-semibold text-sm">R$</span>
+                      <Input
+                        type="text"
+                        inputMode="decimal"
+                        placeholder="0,00"
+                        value={filtros.valorMin}
+                        onChange={(e) => {
+                          const value = e.target.value.replace(/[^0-9.,]/g, "");
+                          setFiltros({ ...filtros, valorMin: value });
+                        }}
+                        className="bg-background border-primary/30 text-foreground focus:border-primary pl-10"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Filtro de Valor Máximo */}
+                  <div className="space-y-2">
+                    <Label className="text-sm text-foreground">Valor Máximo</Label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-primary font-semibold text-sm">R$</span>
+                      <Input
+                        type="text"
+                        inputMode="decimal"
+                        placeholder="0,00"
+                        value={filtros.valorMax}
+                        onChange={(e) => {
+                          const value = e.target.value.replace(/[^0-9.,]/g, "");
+                          setFiltros({ ...filtros, valorMax: value });
+                        }}
+                        className="bg-background border-primary/30 text-foreground focus:border-primary pl-10"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Filtro de Categoria */}
+                  <div className="space-y-2">
+                    <Label className="text-sm text-foreground">Categoria</Label>
+                    <Select
+                      value={filtros.categoria_id || "todas"}
+                      onValueChange={(value) => setFiltros({ ...filtros, categoria_id: value === "todas" ? "" : value })}
+                    >
+                      <SelectTrigger className="w-full bg-background border-primary/30 text-foreground focus:border-primary">
+                        <SelectValue placeholder="Todas" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-background border-primary/30">
+                        <SelectItem value="todas" className="cursor-pointer text-foreground/60">
+                          Todas
+                        </SelectItem>
+                        {categorias.map((c) => (
+                          <SelectItem key={c.id} value={c.id} className="cursor-pointer text-primary">
+                            {c.nome}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Filtro de Forma de Pagamento */}
+                  <div className="space-y-2">
+                    <Label className="text-sm text-foreground">Forma de Pagamento</Label>
+                    <Select
+                      value={filtros.forma_pagamento_id || "todas"}
+                      onValueChange={(value) => setFiltros({ ...filtros, forma_pagamento_id: value === "todas" ? "" : value })}
+                    >
+                      <SelectTrigger className="w-full bg-background border-primary/30 text-foreground focus:border-primary">
+                        <SelectValue placeholder="Todas" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-background border-primary/30">
+                        <SelectItem value="todas" className="cursor-pointer text-foreground/60">
+                          Todas
+                        </SelectItem>
+                        {formasPagamento.map((f) => (
+                          <SelectItem key={f.id} value={f.id} className="cursor-pointer text-primary">
+                            {f.nome}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                {/* Botão para limpar filtros */}
+                <div className="mt-4 flex justify-end">
+                  <Button
+                    variant="outline"
+                    onClick={limparFiltros}
+                    className="border-primary/30 text-primary hover:bg-primary hover:text-background"
+                  >
+                    <XCircle size={16} className="mr-2" />
+                    Limpar Filtros
+                  </Button>
+                </div>
+              </CardContent>
+            )}
+          </Card>
+
           {/* Lista de gastos por mês */}
           <Card className="border-primary/20 bg-background">
             <CardContent className="pt-6">
@@ -440,6 +702,18 @@ export default function GastosPage() {
                 </div>
               ) : gastos.length === 0 ? (
                 <p className="text-foreground/50 text-center py-8">Nenhum gasto cadastrado.</p>
+              ) : mesesDisponiveis.length === 0 ? (
+                <div className="text-center py-8">
+                  <p className="text-foreground/50 mb-2">Nenhum gasto encontrado com os filtros aplicados.</p>
+                  <Button
+                    variant="outline"
+                    onClick={limparFiltros}
+                    className="border-primary/30 text-primary hover:bg-primary hover:text-background"
+                  >
+                    <XCircle size={16} className="mr-2" />
+                    Limpar Filtros
+                  </Button>
+                </div>
               ) : (
                 <>
                   {/* Select de Mês - Mobile */}
