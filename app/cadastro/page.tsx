@@ -119,7 +119,7 @@ export default function CadastroPage() {
                   <Input
                     id="nome"
                     type="text"
-                    placeholder="João"
+                    placeholder="Nome"
                     required
                     value={formData.nome}
                     onChange={(e) => setFormData({ ...formData, nome: e.target.value })}
@@ -131,7 +131,7 @@ export default function CadastroPage() {
                   <Input
                     id="sobrenome"
                     type="text"
-                    placeholder="Silva"
+                    placeholder="Sobrenome"
                     required
                     value={formData.sobrenome}
                     onChange={(e) => setFormData({ ...formData, sobrenome: e.target.value })}
