@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
 import Link from "next/link";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -68,10 +69,14 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen bg-background flex flex-col px-4 sm:px-6 lg:px-8">
-      <AuthHeader />
-
       <div className="flex-1 flex items-center justify-center">
         <div className="w-full max-w-md">
+          <Link href="/" className="flex items-center justify-center gap-3">
+          <Image src="/logo.svg" alt="FinTrack" width={40} height={40} />
+            <h1 className="text-xl sm:text-3xl pt-3 font-bold text-primary mb-3">
+              FinTrack
+            </h1>
+          </Link>
           <Card className="border-primary border-2 bg-background">
           <CardHeader>
             <CardTitle className="text-2xl text-foreground">Login</CardTitle>
