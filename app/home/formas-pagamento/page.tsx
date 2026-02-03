@@ -31,8 +31,34 @@ export default function FormasPagamentoPage() {
     setFormasPagamento(data ?? []);
   }, []);
 
+  const criarFormaPagamentoPadrao = useCallback(async () => {
+    const supabase = createClient();
+
+    // Verificar se já existe a forma de pagamento "Crédito"
+    const { data: existente } = await supabase
+      .from("formas_pagamento")
+      .select("*")
+      .eq("nome", "Crédito")
+      .maybeSingle();
+
+    // Se não existir, criar
+    if (!existente) {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        await supabase.from("formas_pagamento").insert({
+          user_id: user.id,
+          nome: "Crédito",
+        });
+      }
+    }
+  }, []);
+
   useEffect(() => {
-    fetchFormasPagamento();
+    const inicializar = async () => {
+      await criarFormaPagamentoPadrao();
+      await fetchFormasPagamento();
+    };
+    inicializar();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -103,21 +129,41 @@ export default function FormasPagamentoPage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {formasPagamento.map((forma) => (
-                        <tr key={forma.id} className="border-b border-primary/10">
-                          <td className="py-3 px-4 text-foreground">{forma.nome}</td>
-                          <td className="py-3 px-4 text-right">
-                            <div className="flex justify-end gap-2">
-                              <Button variant="outline" size="sm" onClick={() => openEdit(forma)} className="border-primary/30 text-primary hover:bg-primary hover:text-background">
-                                <Pencil size={16} />
-                              </Button>
-                              <Button variant="outline" size="sm" onClick={() => handleDelete(forma.id)} className="border-red-500/30 text-red-500 hover:bg-red-500 hover:text-white">
-                                <Trash2 size={16} />
-                              </Button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
+                      {formasPagamento.map((forma) => {
+                        const isCredito = forma.nome === "Crédito";
+                        return (
+                          <tr key={forma.id} className="border-b border-primary/10">
+                            <td className="py-3 px-4 text-foreground">
+                              {forma.nome}
+                              {isCredito && (
+                                <span className="ml-2 text-xs text-primary/70 font-medium">(Padrão)</span>
+                              )}
+                            </td>
+                            <td className="py-3 px-4 text-right">
+                              <div className="flex justify-end gap-2">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => openEdit(forma)}
+                                  className="border-primary/30 text-primary hover:bg-primary hover:text-background disabled:opacity-50 disabled:cursor-not-allowed"
+                                  disabled={isCredito}
+                                >
+                                  <Pencil size={16} />
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => handleDelete(forma.id)}
+                                  className="border-red-500/30 text-red-500 hover:bg-red-500 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed"
+                                  disabled={isCredito}
+                                >
+                                  <Trash2 size={16} />
+                                </Button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
                     </tbody>
                   </table>
                 </div>

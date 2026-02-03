@@ -10,6 +10,7 @@ import {
   Landmark,
   Tags,
   CreditCard,
+  Receipt,
 } from "lucide-react";
 import {
   Sidebar,
@@ -109,7 +110,8 @@ export function AppSidebar() {
                 defaultOpen={
                   pathname.startsWith("/home/gastos") ||
                   pathname.startsWith("/home/categorias-gastos") ||
-                  pathname.startsWith("/home/formas-pagamento")
+                  pathname.startsWith("/home/formas-pagamento") ||
+                  pathname.startsWith("/home/faturas")
                 }
                 className="group/collapsible"
               >
@@ -153,6 +155,17 @@ export function AppSidebar() {
                           <Link href="/home/formas-pagamento">
                             <CreditCard />
                             <span>Formas de Pagamento</span>
+                          </Link>
+                        </SidebarMenuSubButton>
+                      </SidebarMenuSubItem>
+                      <SidebarMenuSubItem>
+                        <SidebarMenuSubButton
+                          asChild
+                          isActive={pathname === "/home/faturas"}
+                        >
+                          <Link href="/home/faturas">
+                            <Receipt />
+                            <span>Faturas</span>
                           </Link>
                         </SidebarMenuSubButton>
                       </SidebarMenuSubItem>

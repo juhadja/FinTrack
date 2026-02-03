@@ -14,6 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Plus, X, TrendingDown, Pencil, Trash2, CalendarIcon } from "lucide-react";
 import { ptBR } from "date-fns/locale";
 import { format } from "date-fns";
@@ -29,6 +30,12 @@ interface FormaPagamento {
   nome: string;
 }
 
+interface Fatura {
+  id: string;
+  nome: string;
+  dia_fechamento: number;
+}
+
 interface Gasto {
   id: string;
   valor: number;
@@ -36,6 +43,7 @@ interface Gasto {
   descricao: string | null;
   categoria_id: string | null;
   forma_pagamento_id: string | null;
+  fatura_id: string | null;
 }
 
 export default function GastosPage() {
@@ -44,6 +52,7 @@ export default function GastosPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [categorias, setCategorias] = useState<CategoriaGasto[]>([]);
   const [formasPagamento, setFormasPagamento] = useState<FormaPagamento[]>([]);
+  const [faturas, setFaturas] = useState<Fatura[]>([]);
   const [gastos, setGastos] = useState<Gasto[]>([]);
   const [loading, setLoading] = useState(false);
   const [loadingData, setLoadingData] = useState(true);
@@ -52,6 +61,7 @@ export default function GastosPage() {
     valor: "",
     categoria_id: "",
     forma_pagamento_id: "",
+    fatura_id: "",
     descricao: "",
     data: new Date(),
   });
@@ -65,11 +75,12 @@ export default function GastosPage() {
     const firstDayYear = new Date(now.getFullYear(), 0, 1).toISOString().split("T")[0];
     const lastDayYear = new Date(now.getFullYear(), 11, 31).toISOString().split("T")[0];
 
-    const [mesRes, anoRes, categoriasRes, formasPagamentoRes, gastosRes] = await Promise.all([
+    const [mesRes, anoRes, categoriasRes, formasPagamentoRes, faturasRes, gastosRes] = await Promise.all([
       supabase.from("gastos").select("valor").gte("data", firstDayMonth).lte("data", lastDayMonth),
       supabase.from("gastos").select("valor").gte("data", firstDayYear).lte("data", lastDayYear),
       supabase.from("categorias_gastos").select("id, nome").order("nome"),
       supabase.from("formas_pagamento").select("id, nome").order("nome"),
+      supabase.from("faturas").select("id, nome, dia_fechamento").order("nome"),
       supabase.from("gastos").select("*").order("data", { ascending: false }),
     ]);
 
@@ -77,6 +88,7 @@ export default function GastosPage() {
     setTotalAno(anoRes.data?.reduce((acc, e) => acc + Number(e.valor), 0) ?? 0);
     setCategorias(categoriasRes.data ?? []);
     setFormasPagamento(formasPagamentoRes.data ?? []);
+    setFaturas(faturasRes.data ?? []);
     setGastos(gastosRes.data ?? []);
     setLoadingData(false);
   }, []);
@@ -88,7 +100,7 @@ export default function GastosPage() {
 
   const openCreate = () => {
     setEditingId(null);
-    setFormData({ valor: "", categoria_id: "", forma_pagamento_id: "", descricao: "", data: new Date() });
+    setFormData({ valor: "", categoria_id: "", forma_pagamento_id: "", fatura_id: "", descricao: "", data: new Date() });
     setModalOpen(true);
   };
 
@@ -98,6 +110,7 @@ export default function GastosPage() {
       valor: String(gasto.valor),
       categoria_id: gasto.categoria_id ?? "",
       forma_pagamento_id: gasto.forma_pagamento_id ?? "",
+      fatura_id: gasto.fatura_id ?? "",
       descricao: gasto.descricao ?? "",
       data: new Date(gasto.data + "T00:00:00"),
     });
@@ -121,6 +134,7 @@ export default function GastosPage() {
       valor: parseFloat(formData.valor.replace(",", ".")),
       categoria_id: formData.categoria_id || null,
       forma_pagamento_id: formData.forma_pagamento_id || null,
+      fatura_id: formData.fatura_id || null,
       descricao: formData.descricao || null,
       data: dataFormatted,
     };
@@ -137,7 +151,7 @@ export default function GastosPage() {
     }
 
     setModalOpen(false);
-    setFormData({ valor: "", categoria_id: "", forma_pagamento_id: "", descricao: "", data: new Date() });
+    setFormData({ valor: "", categoria_id: "", forma_pagamento_id: "", fatura_id: "", descricao: "", data: new Date() });
     setEditingId(null);
     setLoading(false);
     fetchData();
@@ -457,7 +471,9 @@ export default function GastosPage() {
                   {formasPagamento.length > 0 ? (
                     <Select
                       value={formData.forma_pagamento_id}
-                      onValueChange={(value) => setFormData({ ...formData, forma_pagamento_id: value })}
+                      onValueChange={(value) => {
+                        setFormData({ ...formData, forma_pagamento_id: value, fatura_id: "" });
+                      }}
                     >
                       <SelectTrigger className="w-full bg-background border-primary/30 text-foreground focus:border-primary cursor-pointer">
                         <SelectValue placeholder="Selecione uma forma de pagamento" />
@@ -479,6 +495,45 @@ export default function GastosPage() {
                     </div>
                   )}
                 </div>
+
+                {/* Campo de Fatura - Exibido apenas quando Crédito for selecionado */}
+                {formData.forma_pagamento_id &&
+                  formasPagamento.find(f => f.id === formData.forma_pagamento_id)?.nome === "Crédito" && (
+                  <div className="space-y-2">
+                    <Label className="text-sm text-foreground">Fatura</Label>
+                    {faturas.length > 0 ? (
+                      <RadioGroup
+                        value={formData.fatura_id}
+                        onValueChange={(value) => setFormData({ ...formData, fatura_id: value })}
+                        className="space-y-2"
+                      >
+                        {faturas.map((fatura) => (
+                          <div key={fatura.id} className="flex items-center space-x-2 border border-primary/20 rounded-md p-3 hover:bg-primary/5 cursor-pointer">
+                            <RadioGroupItem value={fatura.id} id={fatura.id} />
+                            <Label
+                              htmlFor={fatura.id}
+                              className="flex-1 cursor-pointer text-foreground"
+                            >
+                              <div>
+                                <p className="font-medium">{fatura.nome}</p>
+                                <p className="text-xs text-foreground/60">
+                                  Fechamento: Dia {fatura.dia_fechamento}
+                                </p>
+                              </div>
+                            </Label>
+                          </div>
+                        ))}
+                      </RadioGroup>
+                    ) : (
+                      <div className="text-sm text-foreground/50">
+                        Nenhuma fatura cadastrada.{" "}
+                        <Link href="/home/faturas" className="text-primary hover:underline font-semibold">
+                          Cadastrar fatura
+                        </Link>
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 <div className="space-y-2">
                   <Label htmlFor="descricao" className="text-sm text-foreground">Descrição (opcional)</Label>
