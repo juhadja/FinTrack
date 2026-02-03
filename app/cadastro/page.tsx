@@ -59,6 +59,7 @@ export default function CadastroPage() {
         email: formData.email,
         password: formData.senha,
         options: {
+          emailRedirectTo: `${window.location.origin}/verificar-email`,
           data: {
             nome: formData.nome,
             sobrenome: formData.sobrenome,
