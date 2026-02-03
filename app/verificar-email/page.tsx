@@ -7,7 +7,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { createClient } from "@/lib/supabase/client";
-import Image from "next/image";
+import { AuthHeader } from "@/components/auth-header";
 
 function VerificarEmailContent() {
   const router = useRouter();
@@ -81,16 +81,12 @@ function VerificarEmailContent() {
   };
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center px-4 sm:px-6 lg:px-8">
-      <div className="w-full max-w-md">
-        <div className="text-center mb-8">
-          <Link href="/" className="flex items-center justify-center gap-4">
-            <Image src="/logo.svg" alt="FinTrack" width={40} height={40} />
-            <h1 className="text-4xl font-bold text-primary cursor-pointer">FinTrack</h1>
-          </Link>
-        </div>
+    <div className="min-h-screen bg-background flex flex-col px-4 sm:px-6 lg:px-8">
+      <AuthHeader />
 
-        <Card className="border-primary border-2 bg-background">
+      <div className="flex-1 flex items-center justify-center">
+        <div className="w-full max-w-md">
+          <Card className="border-primary border-2 bg-background">
           <CardHeader className="text-center">
             <div className="mx-auto mb-4 w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center">
               <Mail className="w-8 h-8 text-primary" />
@@ -145,6 +141,7 @@ function VerificarEmailContent() {
             </div>
           </CardContent>
         </Card>
+        </div>
       </div>
     </div>
   );

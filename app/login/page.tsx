@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { createClient } from "@/lib/supabase/client";
-import Image from "next/image";
+import { AuthHeader } from "@/components/auth-header";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -67,15 +67,12 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center px-4 sm:px-6 lg:px-8">
-      <div className="w-full max-w-md">
-        <div className="text-center mb-8">
-          <Link href="/" className="flex items-center justify-center gap-4">
-            <Image src="/logo.svg" alt="FinTrack"  width={40} height={40} />
-            <h1 className="text-4xl font-bold text-primary cursor-pointer">FinTrack</h1>          </Link>
-        </div>
+    <div className="min-h-screen bg-background flex flex-col px-4 sm:px-6 lg:px-8">
+      <AuthHeader />
 
-        <Card className="border-primary border-2  bg-background">
+      <div className="flex-1 flex items-center justify-center">
+        <div className="w-full max-w-md">
+          <Card className="border-primary border-2 bg-background">
           <CardHeader>
             <CardTitle className="text-2xl text-foreground">Login</CardTitle>
             <CardDescription className="text-foreground/70">
@@ -146,6 +143,7 @@ export default function LoginPage() {
             </form>
           </CardContent>
         </Card>
+        </div>
       </div>
     </div>
   );
