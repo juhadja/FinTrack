@@ -15,14 +15,17 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import Link from "next/link";
-import { DollarSign, ArrowRight, TrendingDown, Wallet, CreditCard, Calendar, CalendarRange } from "lucide-react";
+import { DollarSign, ArrowRight, TrendingDown, Wallet, CreditCard, CalendarRange } from "lucide-react";
 import { ExpensesByCategoryChart } from "@/components/expenses-by-category-chart";
 import { ExpensesByPaymentMethodChart } from "@/components/expenses-by-payment-method-chart";
 import { AppHeader } from "@/components/app-header";
 import { Badge } from "@/components/ui/badge";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
 
-type ChartPeriod = "month" | "all";
+type ChartPeriod = "all" | string; // "all" ou "yyyy-MM" para meses específicos
 
 export default function HomePage() {
   const router = useRouter();
@@ -34,7 +37,9 @@ export default function HomePage() {
   const [saldoMes, setSaldoMes] = useState(0);
   const [chartData, setChartData] = useState<{ categoria: string; total: number }[]>([]);
   const [paymentMethodChartData, setPaymentMethodChartData] = useState<{ formaPagamento: string; total: number }[]>([]);
-  const [chartPeriod, setChartPeriod] = useState<ChartPeriod>("month");
+  const [mesesDisponiveis, setMesesDisponiveis] = useState<string[]>([]);
+  const mesAtualFormatado = format(new Date(), "yyyy-MM");
+  const [chartPeriod, setChartPeriod] = useState<ChartPeriod>(mesAtualFormatado);
 
   useEffect(() => {
     const checkUser = async () => {
@@ -60,7 +65,7 @@ export default function HomePage() {
       const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split("T")[0];
       const lastDayOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split("T")[0];
 
-      // Buscar total de entradas do mês atual
+      // Buscar total de entradas do mês atual (para os cards fixos)
       const { data: entradasMes } = await supabase
         .from("entradas")
         .select("valor")
@@ -70,7 +75,7 @@ export default function HomePage() {
       const totalEntradasMes = entradasMes?.reduce((acc, e) => acc + Number(e.valor), 0) ?? 0;
       setTotalMes(totalEntradasMes);
 
-      // Buscar total de gastos do mês atual
+      // Buscar total de gastos do mês atual (para os cards fixos)
       const { data: gastosMes } = await supabase
         .from("gastos")
         .select("valor")
@@ -81,15 +86,42 @@ export default function HomePage() {
       setTotalGastosMes(totalGastos);
       setSaldoMes(totalEntradasMes - totalGastos);
 
+      // Buscar todos os meses disponíveis
+      const { data: todosGastos } = await supabase
+        .from("gastos")
+        .select("data")
+        .order("data", { ascending: false });
+
+      const mesesSet = new Set<string>();
+      todosGastos?.forEach((gasto) => {
+        const mesAno = format(new Date(gasto.data + "T00:00:00"), "yyyy-MM");
+        mesesSet.add(mesAno);
+      });
+      const mesesArray = Array.from(mesesSet).sort();
+      setMesesDisponiveis(mesesArray);
+
+      // Determinar o período para os gráficos
+      let firstDayPeriod = "";
+      let lastDayPeriod = "";
+
+      if (chartPeriod !== "all") {
+        // Filtrar por mês específico
+        const [ano, mes] = chartPeriod.split("-");
+        const anoNum = parseInt(ano);
+        const mesNum = parseInt(mes) - 1;
+        firstDayPeriod = new Date(anoNum, mesNum, 1).toISOString().split("T")[0];
+        lastDayPeriod = new Date(anoNum, mesNum + 1, 0).toISOString().split("T")[0];
+      }
+
       // Buscar gastos por categoria (baseado no período selecionado)
       let gastosPorCategoriaQuery = supabase
         .from("gastos")
         .select("valor, categorias_gastos(nome)");
 
-      if (chartPeriod === "month") {
+      if (chartPeriod !== "all") {
         gastosPorCategoriaQuery = gastosPorCategoriaQuery
-          .gte("data", firstDayOfMonth)
-          .lte("data", lastDayOfMonth);
+          .gte("data", firstDayPeriod)
+          .lte("data", lastDayPeriod);
       }
 
       const { data: gastosPorCategoria } = await gastosPorCategoriaQuery;
@@ -107,10 +139,10 @@ export default function HomePage() {
         .from("gastos")
         .select("valor, formas_pagamento(nome)");
 
-      if (chartPeriod === "month") {
+      if (chartPeriod !== "all") {
         gastosPorFormaPagamentoQuery = gastosPorFormaPagamentoQuery
-          .gte("data", firstDayOfMonth)
-          .lte("data", lastDayOfMonth);
+          .gte("data", firstDayPeriod)
+          .lte("data", lastDayPeriod);
       }
 
       const { data: gastosPorFormaPagamento } = await gastosPorFormaPagamentoQuery;
@@ -212,19 +244,31 @@ export default function HomePage() {
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
               <h3 className="text-lg sm:text-xl lg:text-2xl text-foreground font-semibold">Distribuição de Gastos</h3>
               <div className="flex gap-2 w-full sm:w-auto">
-                <Button
-                  variant={chartPeriod === "month" ? "default" : "outline"}
-                  onClick={() => setChartPeriod("month")}
-                  className={`flex-1 sm:flex-none ${chartPeriod === "month" ? "bg-primary text-background" : "border-primary text-primary hover:bg-primary hover:text-background"}`}
-                  size="sm"
+                <Select
+                  value={chartPeriod === "all" ? "" : chartPeriod}
+                  onValueChange={(value) => setChartPeriod(value)}
                 >
-                  <Calendar size={14} className="mr-1 sm:mr-2" />
-                  <span className="text-xs sm:text-sm">Mês Atual</span>
-                </Button>
+                  <SelectTrigger className="flex-1 sm:w-50 bg-background border-primary/30 text-foreground focus:border-primary cursor-pointer">
+                    <SelectValue placeholder="Selecione um mês" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-background border-primary/30">
+                    {mesesDisponiveis.map((mesAno) => {
+                      const [ano, mes] = mesAno.split("-");
+                      const data = new Date(parseInt(ano), parseInt(mes) - 1);
+                      const nomeMes = format(data, "MMMM 'de' yyyy", { locale: ptBR });
+                      const nomeFormatado = nomeMes.charAt(0).toUpperCase() + nomeMes.slice(1);
+                      return (
+                        <SelectItem key={mesAno} value={mesAno} className="cursor-pointer text-primary">
+                          {nomeFormatado}
+                        </SelectItem>
+                      );
+                    })}
+                  </SelectContent>
+                </Select>
                 <Button
                   variant={chartPeriod === "all" ? "default" : "outline"}
                   onClick={() => setChartPeriod("all")}
-                  className={`flex-1 sm:flex-none ${chartPeriod === "all" ? "bg-primary text-background" : "border-primary text-primary hover:bg-primary hover:text-background"}`}
+                  className={`shrink-0 ${chartPeriod === "all" ? "bg-primary text-background" : "border-primary text-primary hover:bg-primary hover:text-background"}`}
                   size="sm"
                 >
                   <CalendarRange size={14} className="mr-1 sm:mr-2" />

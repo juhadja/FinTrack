@@ -153,7 +153,7 @@ export default function EntradasPage() {
   const formatarNomeMes = (mesAno: string) => {
     const [ano, mes] = mesAno.split("-");
     const data = new Date(parseInt(ano), parseInt(mes) - 1);
-    const nomeMes = format(data, "MMMM 'de' yyyy", { locale: ptBR });
+    const nomeMes = format(data, "MMMM", { locale: ptBR });
     return nomeMes.charAt(0).toUpperCase() + nomeMes.slice(1);
   };
 
