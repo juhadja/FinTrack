@@ -76,6 +76,7 @@ export default function GastosPage() {
     eh_parcelado: false,
     numero_parcelas: "1",
   });
+  const [mesSelecionado, setMesSelecionado] = useState<string>("");
 
   const fetchData = useCallback(async () => {
     setLoadingData(true);
@@ -108,6 +109,22 @@ export default function GastosPage() {
     fetchData();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Inicializar mês selecionado quando os gastos forem carregados
+  useEffect(() => {
+    if (gastos.length > 0 && !mesSelecionado) {
+      const mesAtual = format(new Date(), "yyyy-MM");
+      const mesesDisponiveis = Object.keys(gastos.reduce((acc, gasto) => {
+        const data = new Date(gasto.data + "T00:00:00");
+        const mesAno = format(data, "yyyy-MM");
+        acc[mesAno] = true;
+        return acc;
+      }, {} as Record<string, boolean>)).sort();
+
+      const mesDefault = mesesDisponiveis.includes(mesAtual) ? mesAtual : mesesDisponiveis[0];
+      setMesSelecionado(mesDefault);
+    }
+  }, [gastos, mesSelecionado]);
 
   const openCreate = () => {
     setEditingId(null);
@@ -330,10 +347,6 @@ export default function GastosPage() {
   // Obter meses ordenados (janeiro primeiro)
   const mesesDisponiveis = Object.keys(gastosPorMes).sort();
 
-  // Obter mês atual como padrão
-  const mesAtual = format(new Date(), "yyyy-MM");
-  const mesDefault = mesesDisponiveis.includes(mesAtual) ? mesAtual : mesesDisponiveis[0];
-
   // Formatar nome do mês
   const formatarNomeMes = (mesAno: string) => {
     const [ano, mes] = mesAno.split("-");
@@ -431,10 +444,7 @@ export default function GastosPage() {
                 <>
                   {/* Select de Mês - Mobile */}
                   <div className="md:hidden mb-4">
-                    <Select value={mesDefault} onValueChange={(value) => {
-                      const tabElement = document.querySelector(`[data-value="${value}"]`) as HTMLElement;
-                      if (tabElement) tabElement.click();
-                    }}>
+                    <Select value={mesSelecionado} onValueChange={setMesSelecionado}>
                       <SelectTrigger className="w-full bg-primary border-primary/30 text-background font-semibold focus:border-primary">
                         <SelectValue />
                       </SelectTrigger>
@@ -448,14 +458,13 @@ export default function GastosPage() {
                     </Select>
                   </div>
 
-                <Tabs defaultValue={mesDefault} className="w-full">
+                <Tabs value={mesSelecionado} onValueChange={setMesSelecionado} className="w-full">
                   {/* Tabs - Desktop apenas */}
                   <TabsList className="hidden md:flex w-full h-auto justify-start overflow-x-auto flex-nowrap bg-background/50 border border-primary/20 mb-4 [&>button]:shrink-0 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
                     {mesesDisponiveis.map((mesAno) => (
                       <TabsTrigger
                         key={mesAno}
                         value={mesAno}
-                        data-value={mesAno}
                         className="data-[state=active]:bg-primary data-[state=active]:text-background capitalize whitespace-nowrap"
                       >
                         {formatarNomeMes(mesAno)}
