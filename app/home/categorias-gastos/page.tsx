@@ -79,7 +79,7 @@ export default function CategoriasGastosPage() {
     <div className="min-h-screen bg-background">
       <AppHeader />
 
-      <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 lg:py-12">
+      <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 lg:py-12">
         <div className="space-y-6">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <h2 className="text-2xl sm:text-3xl font-bold text-foreground">Categorias de Gastos</h2>

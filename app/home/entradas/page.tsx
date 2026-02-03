@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import { createClient } from "@/lib/supabase/client";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -38,6 +39,7 @@ export default function EntradasPage() {
   const [fontes, setFontes] = useState<FonteRenda[]>([]);
   const [entradas, setEntradas] = useState<Entrada[]>([]);
   const [loading, setLoading] = useState(false);
+  const [loadingData, setLoadingData] = useState(true);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     valor: "",
@@ -47,6 +49,7 @@ export default function EntradasPage() {
   });
 
   const fetchData = useCallback(async () => {
+    setLoadingData(true);
     const supabase = createClient();
     const now = new Date();
     const firstDayMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split("T")[0];
@@ -65,6 +68,7 @@ export default function EntradasPage() {
     setTotalAno(anoRes.data?.reduce((acc, e) => acc + Number(e.valor), 0) ?? 0);
     setFontes(fontesRes.data ?? []);
     setEntradas(entradasRes.data ?? []);
+    setLoadingData(false);
   }, []);
 
   useEffect(() => {
@@ -161,7 +165,7 @@ export default function EntradasPage() {
     <div className="min-h-screen bg-background">
       <AppHeader />
 
-      <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-12">
+      <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-12">
         <div className="space-y-6">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <h2 className="text-2xl sm:text-3xl font-bold text-foreground">Entradas</h2>
@@ -178,35 +182,68 @@ export default function EntradasPage() {
           </div>
 
           {/* Totais */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-            <Card className="border-primary border-2 bg-background/50">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base sm:text-lg text-foreground flex items-center gap-2">
-                  <DollarSign className="text-primary" size={18} />
-                  Total do Mês
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-2xl sm:text-3xl font-bold text-primary">{formatCurrency(totalMes)}</p>
-              </CardContent>
-            </Card>
-            <Card className="border-primary/20 bg-background/50">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base sm:text-lg text-foreground flex items-center gap-2">
-                  <DollarSign className="text-primary" size={18} />
-                  Total do Ano
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-2xl sm:text-3xl font-bold text-primary">{formatCurrency(totalAno)}</p>
-              </CardContent>
-            </Card>
-          </div>
+          {loadingData ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+              <Card className="border-primary border-2 bg-background/50">
+                <CardHeader className="pb-3">
+                  <Skeleton className="h-6 w-32" />
+                </CardHeader>
+                <CardContent>
+                  <Skeleton className="h-10 w-40" />
+                </CardContent>
+              </Card>
+              <Card className="border-primary/20 bg-background/50">
+                <CardHeader className="pb-3">
+                  <Skeleton className="h-6 w-32" />
+                </CardHeader>
+                <CardContent>
+                  <Skeleton className="h-10 w-40" />
+                </CardContent>
+              </Card>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+              <Card className="border-primary border-2 bg-background/50">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base sm:text-lg text-foreground flex items-center gap-2">
+                    <DollarSign className="text-primary" size={18} />
+                    Total do Mês
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-2xl sm:text-3xl font-bold text-primary">{formatCurrency(totalMes)}</p>
+                </CardContent>
+              </Card>
+              <Card className="border-primary/20 bg-background/50">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base sm:text-lg text-foreground flex items-center gap-2">
+                    <DollarSign className="text-primary" size={18} />
+                    Total do Ano
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-2xl sm:text-3xl font-bold text-primary">{formatCurrency(totalAno)}</p>
+                </CardContent>
+              </Card>
+            </div>
+          )}
 
           {/* Lista de entradas por mês */}
           <Card className="border-primary/20 bg-background">
             <CardContent className="pt-6">
-              {entradas.length === 0 ? (
+              {loadingData ? (
+                <div className="space-y-4">
+                  <div className="flex gap-2 mb-4">
+                    <Skeleton className="h-10 w-32" />
+                    <Skeleton className="h-10 w-32" />
+                  </div>
+                  <div className="space-y-3">
+                    {[1, 2, 3, 4, 5].map((i) => (
+                      <Skeleton key={i} className="h-16 w-full" />
+                    ))}
+                  </div>
+                </div>
+              ) : entradas.length === 0 ? (
                 <p className="text-foreground/50 text-center py-8">Nenhuma entrada cadastrada.</p>
               ) : (
                 <Tabs defaultValue={mesDefault} className="w-full **:[[role=tablist]]:overflow-visible [&_button[aria-label]]:hidden">

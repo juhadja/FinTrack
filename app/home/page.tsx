@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Skeleton } from "@/components/ui/skeleton";
 import Link from "next/link";
 import { DollarSign, ArrowRight, TrendingDown, Wallet, CreditCard, CalendarRange } from "lucide-react";
 import { ExpensesByCategoryChart } from "@/components/expenses-by-category-chart";
@@ -40,6 +41,7 @@ export default function HomePage() {
   const [mesesDisponiveis, setMesesDisponiveis] = useState<string[]>([]);
   const mesAtualFormatado = format(new Date(), "yyyy-MM");
   const [chartPeriod, setChartPeriod] = useState<ChartPeriod>(mesAtualFormatado);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const checkUser = async () => {
@@ -60,6 +62,7 @@ export default function HomePage() {
 
   useEffect(() => {
     const fetchData = async () => {
+      setLoading(true);
       const supabase = createClient();
       const now = new Date();
       const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split("T")[0];
@@ -154,6 +157,8 @@ export default function HomePage() {
       });
       const paymentData = Array.from(formasPagamentoMap, ([formaPagamento, total]) => ({ formaPagamento, total }));
       setPaymentMethodChartData(paymentData);
+
+      setLoading(false);
     };
 
     fetchData();
@@ -166,78 +171,128 @@ export default function HomePage() {
       <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 lg:py-12">
         <div className="space-y-8">
           {/* Card Saldo */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 items-stretch">
-            <Card className="border-primary/30 bg-primary/10 col-span-2">
-              <CardHeader>
-                <CardDescription className="text-foreground flex items-center gap-2 text-xs sm:text-sm">
-                  <Wallet className="text-foreground" size={14} />
-                  Saldo
-                </CardDescription>
-                <CardTitle>
-                  <p className={`text-2xl sm:text-3xl lg:text-4xl font-semibold ${saldoMes >= 0 ? "text-primary" : "text-red-500"}`}>
-                    {saldoMes.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
-                  </p>
-                </CardTitle>
-                <CardAction className="flex flex-col gap-2 items-end">
-                  <Badge variant="outline" className="border-primary text-xs">
-                    <p className="text-primary">
-                      +{totalMes.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
-                    </p>
-                  </Badge>
-                  <Badge variant="outline" className="border-red-500 text-xs">
-                    <p className="text-red-500">
-                      -{totalGastosMes.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
-                    </p>
-                  </Badge>
-                </CardAction>
-              </CardHeader>
-              <CardFooter className="flex-col items-start gap-1.5 text-xs sm:text-sm">
-                <div className="text-foreground/70 flex gap-2">Saldo atual do mês</div>
-              </CardFooter>
-            </Card>
-            <Link href="/home/entradas" className="col-span-2 md:col-span-1">
-              <Card className="border-primary bg-background/50 hover:ring-2 hover:ring-primary cursor-pointer h-full">
+          {loading ? (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 items-stretch">
+              <Card className="border-primary/30 bg-primary/10 col-span-2">
                 <CardHeader>
-                  <CardDescription className="text-foreground flex items-center gap-2 text-xs sm:text-sm">
-                    <DollarSign className="text-primary" size={16} />
-                    Entradas do Mês
+                  <CardDescription className="text-xs sm:text-sm mb-2">
+                    <Skeleton className="h-4 w-16" />
                   </CardDescription>
-                  <CardTitle>
-                    <div className="flex items-center justify-between">
-                      <p className="text-xl sm:text-2xl lg:text-3xl font-bold text-primary">
-                        {totalMes.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
-                      </p>
-                    </div>
+                  <CardTitle className="mb-4">
+                    <Skeleton className="h-9 sm:h-11 lg:h-14 w-32 sm:w-40" />
+                  </CardTitle>
+                  <CardAction className="flex flex-col gap-2 items-end">
+                    <Skeleton className="h-6 w-24" />
+                    <Skeleton className="h-6 w-24" />
+                  </CardAction>
+                </CardHeader>
+                <CardFooter className="flex-col items-start gap-1.5 text-xs sm:text-sm">
+                  <Skeleton className="h-4 w-36" />
+                </CardFooter>
+              </Card>
+              <Card className="border-primary bg-background/50 col-span-2 md:col-span-1 h-full">
+                <CardHeader>
+                  <CardDescription className="text-xs sm:text-sm mb-2">
+                    <Skeleton className="h-4 w-32" />
+                  </CardDescription>
+                  <CardTitle className="mb-4">
+                    <Skeleton className="h-7 sm:h-8 lg:h-10 w-28 sm:w-32" />
                   </CardTitle>
                 </CardHeader>
                 <CardFooter className="flex justify-between text-xs sm:text-sm">
-                  <p>Gerenciar Entradas</p>
-                  <ArrowRight className="text-primary" size={18} />
+                  <Skeleton className="h-4 w-32" />
+                  <Skeleton className="h-4 w-4" />
                 </CardFooter>
               </Card>
-            </Link>
-            <Link href="/home/gastos" className="col-span-2 md:col-span-1">
-              <Card className="border-primary bg-background/50 hover:ring-2 hover:ring-primary cursor-pointer h-full">
+              <Card className="border-primary bg-background/50 col-span-2 md:col-span-1 h-full">
                 <CardHeader>
-                  <CardDescription className="text-foreground flex items-center gap-2 text-xs sm:text-sm">
-                    <TrendingDown className="text-red-500" size={16} />
-                    Gastos do Mês
+                  <CardDescription className="text-xs sm:text-sm mb-2">
+                    <Skeleton className="h-4 w-28" />
                   </CardDescription>
-                  <CardTitle>
-                    <div className="flex items-center justify-between">
-                      <p className="text-xl sm:text-2xl lg:text-3xl font-bold text-red-500">
-                        {totalGastosMes.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
-                      </p>
-                    </div>
+                  <CardTitle className="mb-4">
+                    <Skeleton className="h-7 sm:h-8 lg:h-10 w-28 sm:w-32" />
                   </CardTitle>
                 </CardHeader>
                 <CardFooter className="flex justify-between text-xs sm:text-sm">
-                  <p>Gerenciar Gastos</p>
-                  <ArrowRight className="text-red-500" size={18} />
+                  <Skeleton className="h-4 w-28" />
+                  <Skeleton className="h-4 w-4" />
                 </CardFooter>
               </Card>
-            </Link>
-          </div>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 items-stretch">
+              <Card className="border-primary/30 bg-primary/10 col-span-2">
+                <CardHeader>
+                  <CardDescription className="text-foreground flex items-center gap-2 text-xs sm:text-sm">
+                    <Wallet className="text-foreground" size={14} />
+                    Saldo
+                  </CardDescription>
+                  <CardTitle>
+                    <p className={`text-2xl sm:text-3xl lg:text-4xl font-semibold ${saldoMes >= 0 ? "text-primary" : "text-red-500"}`}>
+                      {saldoMes.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                    </p>
+                  </CardTitle>
+                  <CardAction className="flex flex-col gap-2 items-end">
+                    <Badge variant="outline" className="border-primary text-xs">
+                      <p className="text-primary">
+                        +{totalMes.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                      </p>
+                    </Badge>
+                    <Badge variant="outline" className="border-red-500 text-xs">
+                      <p className="text-red-500">
+                        -{totalGastosMes.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                      </p>
+                    </Badge>
+                  </CardAction>
+                </CardHeader>
+                <CardFooter className="flex-col items-start gap-1.5 text-xs sm:text-sm">
+                  <div className="text-foreground/70 flex gap-2">Saldo atual do mês</div>
+                </CardFooter>
+              </Card>
+              <Link href="/home/entradas" className="col-span-2 md:col-span-1">
+                <Card className="border-primary bg-background/50 hover:ring-2 hover:ring-primary cursor-pointer h-full">
+                  <CardHeader>
+                    <CardDescription className="text-foreground flex items-center gap-2 text-xs sm:text-sm">
+                      <DollarSign className="text-primary" size={16} />
+                      Entradas do Mês
+                    </CardDescription>
+                    <CardTitle>
+                      <div className="flex items-center justify-between">
+                        <p className="text-xl sm:text-2xl lg:text-3xl font-bold text-primary">
+                          {totalMes.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                        </p>
+                      </div>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardFooter className="flex justify-between text-xs sm:text-sm">
+                    <p>Gerenciar Entradas</p>
+                    <ArrowRight className="text-primary" size={18} />
+                  </CardFooter>
+                </Card>
+              </Link>
+              <Link href="/home/gastos" className="col-span-2 md:col-span-1">
+                <Card className="border-primary bg-background/50 hover:ring-2 hover:ring-primary cursor-pointer h-full">
+                  <CardHeader>
+                    <CardDescription className="text-foreground flex items-center gap-2 text-xs sm:text-sm">
+                      <TrendingDown className="text-red-500" size={16} />
+                      Gastos do Mês
+                    </CardDescription>
+                    <CardTitle>
+                      <div className="flex items-center justify-between">
+                        <p className="text-xl sm:text-2xl lg:text-3xl font-bold text-red-500">
+                          {totalGastosMes.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                        </p>
+                      </div>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardFooter className="flex justify-between text-xs sm:text-sm">
+                    <p>Gerenciar Gastos</p>
+                    <ArrowRight className="text-red-500" size={18} />
+                  </CardFooter>
+                </Card>
+              </Link>
+            </div>
+          )}
 
           {/* Toggle de Período e Gráficos de Gastos */}
           <div className="space-y-3 sm:space-y-4">
@@ -277,33 +332,58 @@ export default function HomePage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4">
-              {/* Gráfico de Gastos por Categoria */}
-              <Card className="border-primary bg-background/50 hover:bg-primary/10">
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-sm sm:text-base lg:text-lg text-foreground flex items-center gap-2">
-                    <TrendingDown className="text-red-500" size={16} />
-                    Gastos por Categoria
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="pt-0">
-                  <ExpensesByCategoryChart data={chartData} />
-                </CardContent>
-              </Card>
+            {loading ? (
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4">
+                <Card className="border-primary bg-background/50">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-sm sm:text-base lg:text-lg">
+                      <Skeleton className="h-5 sm:h-6 w-48" />
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="pt-0">
+                    <Skeleton className="h-75 w-full rounded-lg" />
+                  </CardContent>
+                </Card>
+                <Card className="border-primary bg-background/50">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-sm sm:text-base lg:text-lg">
+                      <Skeleton className="h-5 sm:h-6 w-56" />
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="pt-0">
+                    <Skeleton className="h-75 w-full rounded-lg" />
+                  </CardContent>
+                </Card>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4">
+                {/* Gráfico de Gastos por Categoria */}
+                <Card className="border-primary bg-background/50 hover:bg-primary/10">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-sm sm:text-base lg:text-lg text-foreground flex items-center gap-2">
+                      <TrendingDown className="text-red-500" size={16} />
+                      Gastos por Categoria
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="pt-0">
+                    <ExpensesByCategoryChart data={chartData} />
+                  </CardContent>
+                </Card>
 
-              {/* Gráfico de Gastos por Forma de Pagamento */}
-              <Card className="border-primary bg-background/50 hover:bg-primary/10">
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-sm sm:text-base lg:text-lg text-foreground flex items-center gap-2">
-                    <CreditCard className="text-red-500" size={16} />
-                    Gastos por Forma de Pagamento
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="pt-0">
-                  <ExpensesByPaymentMethodChart data={paymentMethodChartData} />
-                </CardContent>
-              </Card>
-            </div>
+                {/* Gráfico de Gastos por Forma de Pagamento */}
+                <Card className="border-primary bg-background/50 hover:bg-primary/10">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-sm sm:text-base lg:text-lg text-foreground flex items-center gap-2">
+                      <CreditCard className="text-red-500" size={16} />
+                      Gastos por Forma de Pagamento
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="pt-0">
+                    <ExpensesByPaymentMethodChart data={paymentMethodChartData} />
+                  </CardContent>
+                </Card>
+              </div>
+            )}
           </div>
         </div>
       </main>
