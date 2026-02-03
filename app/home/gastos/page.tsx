@@ -77,6 +77,7 @@ export default function GastosPage() {
     numero_parcelas: "1",
   });
   const [mesSelecionado, setMesSelecionado] = useState<string>("");
+  const [mounted, setMounted] = useState(false);
 
   // Estados de filtros
   const [filtros, setFiltros] = useState({
@@ -117,6 +118,7 @@ export default function GastosPage() {
   }, []);
 
   useEffect(() => {
+    setMounted(true);
     fetchData();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -534,7 +536,7 @@ export default function GastosPage() {
               </div>
             </CardHeader>
 
-            {mostrarFiltros && (
+            {mostrarFiltros && mounted && (
               <CardContent className="pt-0">
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                   {/* Filtro de Data Início */}
@@ -713,6 +715,10 @@ export default function GastosPage() {
                     <XCircle size={16} className="mr-2" />
                     Limpar Filtros
                   </Button>
+                </div>
+              ) : !mounted ? (
+                <div className="flex justify-center py-8">
+                  <Skeleton className="h-10 w-full max-w-md" />
                 </div>
               ) : (
                 <>
