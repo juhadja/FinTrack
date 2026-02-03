@@ -12,6 +12,7 @@ import { createClient } from "@/lib/supabase/client";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Plus, X, DollarSign, Pencil, Trash2, CalendarIcon } from "lucide-react";
 import { ptBR } from "date-fns/locale";
 import { format } from "date-fns";
@@ -130,6 +131,32 @@ export default function EntradasPage() {
   const formatCurrency = (value: number) =>
     value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
+  // Agrupar entradas por mês
+  const entradasPorMes = entradas.reduce((acc, entrada) => {
+    const data = new Date(entrada.data + "T00:00:00");
+    const mesAno = format(data, "yyyy-MM");
+    if (!acc[mesAno]) {
+      acc[mesAno] = [];
+    }
+    acc[mesAno].push(entrada);
+    return acc;
+  }, {} as Record<string, Entrada[]>);
+
+  // Obter meses ordenados (janeiro primeiro)
+  const mesesDisponiveis = Object.keys(entradasPorMes).sort();
+
+  // Obter mês atual como padrão
+  const mesAtual = format(new Date(), "yyyy-MM");
+  const mesDefault = mesesDisponiveis.includes(mesAtual) ? mesAtual : mesesDisponiveis[0];
+
+  // Formatar nome do mês
+  const formatarNomeMes = (mesAno: string) => {
+    const [ano, mes] = mesAno.split("-");
+    const data = new Date(parseInt(ano), parseInt(mes) - 1);
+    const nomeMes = format(data, "MMMM 'de' yyyy", { locale: ptBR });
+    return nomeMes.charAt(0).toUpperCase() + nomeMes.slice(1);
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <AppHeader />
@@ -176,90 +203,106 @@ export default function EntradasPage() {
             </Card>
           </div>
 
-          {/* Lista de entradas */}
+          {/* Lista de entradas por mês */}
           <Card className="border-primary/20 bg-background">
             <CardContent className="pt-6">
               {entradas.length === 0 ? (
                 <p className="text-foreground/50 text-center py-8">Nenhuma entrada cadastrada.</p>
               ) : (
-                <>
-                  {/* Visualização Desktop - Tabela */}
-                  <div className="hidden md:block overflow-x-auto">
-                    <table className="w-full">
-                      <thead>
-                        <tr className="border-b border-primary/20">
-                          <th className="text-left py-3 px-4 text-foreground font-semibold">Data</th>
-                          <th className="text-left py-3 px-4 text-foreground font-semibold">Valor</th>
-                          <th className="text-left py-3 px-4 text-foreground font-semibold">Fonte</th>
-                          <th className="text-left py-3 px-4 text-foreground font-semibold">Descrição</th>
-                          <th className="text-right py-3 px-4 text-foreground font-semibold">Ações</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {entradas.map((entrada) => (
-                          <tr key={entrada.id} className="border-b border-primary/10">
-                            <td className="py-3 px-4 text-foreground">
-                              {new Date(entrada.data + "T00:00:00").toLocaleDateString("pt-BR")}
-                            </td>
-                            <td className="py-3 px-4 text-primary font-semibold">
-                              {formatCurrency(Number(entrada.valor))}
-                            </td>
-                            <td className="py-3 px-4 text-foreground">{getFonteNome(entrada.fonte_id)}</td>
-                            <td className="py-3 px-4 text-foreground/70">{entrada.descricao || "—"}</td>
-                            <td className="py-3 px-4 text-right">
-                              <div className="flex justify-end gap-2">
-                                <Button variant="outline" size="sm" onClick={() => openEdit(entrada)} className="border-primary/30 text-primary hover:bg-primary hover:text-background">
-                                  <Pencil size={16} />
+                <Tabs defaultValue={mesDefault} className="w-full **:[[role=tablist]]:overflow-visible [&_button[aria-label]]:hidden">
+                  <TabsList className="w-full h-auto justify-start overflow-x-auto flex-nowrap bg-background/50 border border-primary/20 mb-4 [&>button]:shrink-0 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+                    {mesesDisponiveis.map((mesAno) => (
+                      <TabsTrigger
+                        key={mesAno}
+                        value={mesAno}
+                        className="data-[state=active]:bg-primary data-[state=active]:text-background capitalize whitespace-nowrap"
+                      >
+                        {formatarNomeMes(mesAno)}
+                      </TabsTrigger>
+                    ))}
+                  </TabsList>
+
+                  {mesesDisponiveis.map((mesAno) => (
+                    <TabsContent key={mesAno} value={mesAno} className="mt-0">
+                      {/* Visualização Desktop - Tabela */}
+                      <div className="hidden md:block overflow-x-auto">
+                        <table className="w-full">
+                          <thead>
+                            <tr className="border-b border-primary/20">
+                              <th className="text-left py-3 px-4 text-foreground font-semibold">Data</th>
+                              <th className="text-left py-3 px-4 text-foreground font-semibold">Valor</th>
+                              <th className="text-left py-3 px-4 text-foreground font-semibold">Fonte</th>
+                              <th className="text-left py-3 px-4 text-foreground font-semibold">Descrição</th>
+                              <th className="text-right py-3 px-4 text-foreground font-semibold">Ações</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {entradasPorMes[mesAno].map((entrada) => (
+                              <tr key={entrada.id} className="border-b border-primary/10">
+                                <td className="py-3 px-4 text-foreground">
+                                  {new Date(entrada.data + "T00:00:00").toLocaleDateString("pt-BR")}
+                                </td>
+                                <td className="py-3 px-4 text-primary font-semibold">
+                                  {formatCurrency(Number(entrada.valor))}
+                                </td>
+                                <td className="py-3 px-4 text-foreground">{getFonteNome(entrada.fonte_id)}</td>
+                                <td className="py-3 px-4 text-foreground/70">{entrada.descricao || "—"}</td>
+                                <td className="py-3 px-4 text-right">
+                                  <div className="flex justify-end gap-2">
+                                    <Button variant="outline" size="sm" onClick={() => openEdit(entrada)} className="border-primary/30 text-primary hover:bg-primary hover:text-background">
+                                      <Pencil size={16} />
+                                    </Button>
+                                    <Button variant="outline" size="sm" onClick={() => handleDelete(entrada.id)} className="border-red-500/30 text-red-500 hover:bg-red-500 hover:text-white">
+                                      <Trash2 size={16} />
+                                    </Button>
+                                  </div>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+
+                      {/* Visualização Mobile - Cards */}
+                      <div className="md:hidden space-y-3">
+                        {entradasPorMes[mesAno].map((entrada) => (
+                          <div key={entrada.id} className="border border-primary/20 rounded-lg p-4 space-y-3">
+                            <div className="flex items-start justify-between">
+                              <div className="flex-1">
+                                <p className="text-2xl font-bold text-primary">
+                                  {formatCurrency(Number(entrada.valor))}
+                                </p>
+                                <p className="text-sm text-foreground/60 mt-1">
+                                  {new Date(entrada.data + "T00:00:00").toLocaleDateString("pt-BR")}
+                                </p>
+                              </div>
+                              <div className="flex gap-2">
+                                <Button variant="outline" size="sm" onClick={() => openEdit(entrada)} className="border-primary/30 text-primary hover:bg-primary hover:text-background h-8 w-8 p-0">
+                                  <Pencil size={14} />
                                 </Button>
-                                <Button variant="outline" size="sm" onClick={() => handleDelete(entrada.id)} className="border-red-500/30 text-red-500 hover:bg-red-500 hover:text-white">
-                                  <Trash2 size={16} />
+                                <Button variant="outline" size="sm" onClick={() => handleDelete(entrada.id)} className="border-red-500/30 text-red-500 hover:bg-red-500 hover:text-white h-8 w-8 p-0">
+                                  <Trash2 size={14} />
                                 </Button>
                               </div>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-
-                  {/* Visualização Mobile - Cards */}
-                  <div className="md:hidden space-y-3">
-                    {entradas.map((entrada) => (
-                      <div key={entrada.id} className="border border-primary/20 rounded-lg p-4 space-y-3">
-                        <div className="flex items-start justify-between">
-                          <div className="flex-1">
-                            <p className="text-2xl font-bold text-primary">
-                              {formatCurrency(Number(entrada.valor))}
-                            </p>
-                            <p className="text-sm text-foreground/60 mt-1">
-                              {new Date(entrada.data + "T00:00:00").toLocaleDateString("pt-BR")}
-                            </p>
-                          </div>
-                          <div className="flex gap-2">
-                            <Button variant="outline" size="sm" onClick={() => openEdit(entrada)} className="border-primary/30 text-primary hover:bg-primary hover:text-background h-8 w-8 p-0">
-                              <Pencil size={14} />
-                            </Button>
-                            <Button variant="outline" size="sm" onClick={() => handleDelete(entrada.id)} className="border-red-500/30 text-red-500 hover:bg-red-500 hover:text-white h-8 w-8 p-0">
-                              <Trash2 size={14} />
-                            </Button>
-                          </div>
-                        </div>
-                        <div className="space-y-1">
-                          <div className="flex items-center gap-2">
-                            <span className="text-xs text-foreground/50 font-medium">Fonte:</span>
-                            <span className="text-sm text-foreground">{getFonteNome(entrada.fonte_id)}</span>
-                          </div>
-                          {entrada.descricao && (
-                            <div className="flex items-center gap-2">
-                              <span className="text-xs text-foreground/50 font-medium">Descrição:</span>
-                              <span className="text-sm text-foreground/70">{entrada.descricao}</span>
                             </div>
-                          )}
-                        </div>
+                            <div className="space-y-1">
+                              <div className="flex items-center gap-2">
+                                <span className="text-xs text-foreground/50 font-medium">Fonte:</span>
+                                <span className="text-sm text-foreground">{getFonteNome(entrada.fonte_id)}</span>
+                              </div>
+                              {entrada.descricao && (
+                                <div className="flex items-center gap-2">
+                                  <span className="text-xs text-foreground/50 font-medium">Descrição:</span>
+                                  <span className="text-sm text-foreground/70">{entrada.descricao}</span>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        ))}
                       </div>
-                    ))}
-                  </div>
-                </>
+                    </TabsContent>
+                  ))}
+                </Tabs>
               )}
             </CardContent>
           </Card>

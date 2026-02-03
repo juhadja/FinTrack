@@ -70,20 +70,24 @@ export default function CadastroPage() {
       if (authError) throw authError;
 
       if (authData.user) {
-        setMessage({
-          type: 'success',
-          text: 'Cadastro realizado! Verifique seu e-mail para confirmar sua conta.'
-        });
-        
-        setTimeout(() => {
-          router.push('/login');
-        }, 3000);
+        // Redireciona imediatamente para a página de verificação de e-mail
+        router.push(`/verificar-email?email=${encodeURIComponent(formData.email)}`);
       }
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
+      let errorMessage = 'Erro ao realizar cadastro. Tente novamente.';
+
+      if (error.message?.includes('rate limit')) {
+        errorMessage = 'Limite de envio de e-mails atingido. Aguarde alguns minutos e tente novamente.';
+      } else if (error.message?.includes('already registered')) {
+        errorMessage = 'Este e-mail já está cadastrado. Tente fazer login.';
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+
       setMessage({
         type: 'error',
-        text: error.message || 'Erro ao realizar cadastro. Tente novamente.'
+        text: errorMessage
       });
     } finally {
       setLoading(false);

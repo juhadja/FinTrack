@@ -37,11 +37,19 @@ export default function LoginPage() {
       if (error) throw error;
 
       if (data.user) {
+        // Verifica se o e-mail foi confirmado
+        if (!data.user.email_confirmed_at) {
+          // Faz logout e redireciona para página de verificação
+          await supabase.auth.signOut();
+          router.push(`/verificar-email?email=${encodeURIComponent(formData.email)}`);
+          return;
+        }
+
         setMessage({
           type: 'success',
           text: ''
         });
-        
+
         router.push('/home');
         router.refresh();
       }
