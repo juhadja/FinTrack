@@ -19,7 +19,6 @@ interface CategoriaGasto {
 }
 
 export default function CategoriasGastosPage() {
-  const supabase = createClient();
   const [categorias, setCategorias] = useState<CategoriaGasto[]>([]);
   const [modalOpen, setModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -27,9 +26,10 @@ export default function CategoriasGastosPage() {
   const [loading, setLoading] = useState(false);
 
   const fetchCategorias = useCallback(async () => {
+    const supabase = createClient();
     const { data } = await supabase.from("categorias_gastos").select("*").order("nome");
     setCategorias(data ?? []);
-  }, [supabase]);
+  }, []);
 
   useEffect(() => {
     fetchCategorias();
@@ -52,6 +52,7 @@ export default function CategoriasGastosPage() {
     e.preventDefault();
     setLoading(true);
 
+    const supabase = createClient();
     if (editingId) {
       await supabase.from("categorias_gastos").update({ nome }).eq("id", editingId);
     } else {
@@ -69,6 +70,7 @@ export default function CategoriasGastosPage() {
 
   const handleDelete = async (id: string) => {
     if (!confirm("Tem certeza que deseja excluir esta categoria?")) return;
+    const supabase = createClient();
     await supabase.from("categorias_gastos").delete().eq("id", id);
     fetchCategorias();
   };

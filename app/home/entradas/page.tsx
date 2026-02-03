@@ -31,7 +31,6 @@ interface Entrada {
 }
 
 export default function EntradasPage() {
-  const supabase = createClient();
   const [totalMes, setTotalMes] = useState(0);
   const [totalAno, setTotalAno] = useState(0);
   const [modalOpen, setModalOpen] = useState(false);
@@ -47,6 +46,7 @@ export default function EntradasPage() {
   });
 
   const fetchData = useCallback(async () => {
+    const supabase = createClient();
     const now = new Date();
     const firstDayMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split("T")[0];
     const lastDayMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split("T")[0];
@@ -64,7 +64,7 @@ export default function EntradasPage() {
     setTotalAno(anoRes.data?.reduce((acc, e) => acc + Number(e.valor), 0) ?? 0);
     setFontes(fontesRes.data ?? []);
     setEntradas(entradasRes.data ?? []);
-  }, [supabase]);
+  }, []);
 
   useEffect(() => {
     fetchData();
@@ -90,6 +90,7 @@ export default function EntradasPage() {
 
   const handleDelete = async (id: string) => {
     if (!confirm("Tem certeza que deseja excluir esta entrada?")) return;
+    const supabase = createClient();
     await supabase.from("entradas").delete().eq("id", id);
     fetchData();
   };
@@ -98,6 +99,7 @@ export default function EntradasPage() {
     e.preventDefault();
     setLoading(true);
 
+    const supabase = createClient();
     const dataFormatted = formData.data.toISOString().split("T")[0];
     const payload = {
       valor: parseFloat(formData.valor.replace(",", ".")),

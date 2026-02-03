@@ -18,7 +18,6 @@ interface FonteRenda {
 }
 
 export default function FontesRendaPage() {
-  const supabase = createClient();
   const [fontes, setFontes] = useState<FonteRenda[]>([]);
   const [modalOpen, setModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -26,13 +25,15 @@ export default function FontesRendaPage() {
   const [loading, setLoading] = useState(false);
 
   const fetchFontes = useCallback(async () => {
+    const supabase = createClient();
     const { data } = await supabase.from("fontes_renda").select("*").order("nome");
     setFontes(data ?? []);
-  }, [supabase]);
+  }, []);
 
   useEffect(() => {
     fetchFontes();
-  }, [fetchFontes]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const openCreate = () => {
     setEditingId(null);
@@ -50,6 +51,7 @@ export default function FontesRendaPage() {
     e.preventDefault();
     setLoading(true);
 
+    const supabase = createClient();
     if (editingId) {
       await supabase.from("fontes_renda").update({ nome }).eq("id", editingId);
     } else {
@@ -67,6 +69,7 @@ export default function FontesRendaPage() {
 
   const handleDelete = async (id: string) => {
     if (!confirm("Tem certeza que deseja excluir esta fonte?")) return;
+    const supabase = createClient();
     await supabase.from("fontes_renda").delete().eq("id", id);
     fetchFontes();
   };

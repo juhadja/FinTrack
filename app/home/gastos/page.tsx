@@ -37,7 +37,6 @@ interface Gasto {
 }
 
 export default function GastosPage() {
-  const supabase = createClient();
   const [totalMes, setTotalMes] = useState(0);
   const [totalAno, setTotalAno] = useState(0);
   const [modalOpen, setModalOpen] = useState(false);
@@ -55,6 +54,7 @@ export default function GastosPage() {
   });
 
   const fetchData = useCallback(async () => {
+    const supabase = createClient();
     const now = new Date();
     const firstDayMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split("T")[0];
     const lastDayMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split("T")[0];
@@ -74,7 +74,7 @@ export default function GastosPage() {
     setCategorias(categoriasRes.data ?? []);
     setFormasPagamento(formasPagamentoRes.data ?? []);
     setGastos(gastosRes.data ?? []);
-  }, [supabase]);
+  }, []);
 
   useEffect(() => {
     fetchData();
@@ -101,6 +101,7 @@ export default function GastosPage() {
 
   const handleDelete = async (id: string) => {
     if (!confirm("Tem certeza que deseja excluir este gasto?")) return;
+    const supabase = createClient();
     await supabase.from("gastos").delete().eq("id", id);
     fetchData();
   };
@@ -109,6 +110,7 @@ export default function GastosPage() {
     e.preventDefault();
     setLoading(true);
 
+    const supabase = createClient();
     const dataFormatted = formData.data.toISOString().split("T")[0];
     const payload = {
       valor: parseFloat(formData.valor.replace(",", ".")),

@@ -26,7 +26,6 @@ type ChartPeriod = "month" | "all";
 
 export default function HomePage() {
   const router = useRouter();
-  const supabase = createClient();
 
   const [nome, setNome] = useState("Usuário");
   const [sobrenome, setSobrenome] = useState("");
@@ -39,6 +38,7 @@ export default function HomePage() {
 
   useEffect(() => {
     const checkUser = async () => {
+      const supabase = createClient();
       const { data: { user } } = await supabase.auth.getUser();
 
       if (!user) {
@@ -51,10 +51,11 @@ export default function HomePage() {
     };
 
     checkUser();
-  }, [router, supabase]);
+  }, [router]);
 
   useEffect(() => {
     const fetchData = async () => {
+      const supabase = createClient();
       const now = new Date();
       const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split("T")[0];
       const lastDayOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split("T")[0];
@@ -124,7 +125,7 @@ export default function HomePage() {
     };
 
     fetchData();
-  }, [supabase, chartPeriod]);
+  }, [chartPeriod]);
 
   return (
     <div className="min-h-screen bg-background">

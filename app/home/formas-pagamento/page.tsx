@@ -19,7 +19,6 @@ interface FormaPagamento {
 }
 
 export default function FormasPagamentoPage() {
-  const supabase = createClient();
   const [formasPagamento, setFormasPagamento] = useState<FormaPagamento[]>([]);
   const [modalOpen, setModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -27,9 +26,10 @@ export default function FormasPagamentoPage() {
   const [loading, setLoading] = useState(false);
 
   const fetchFormasPagamento = useCallback(async () => {
+    const supabase = createClient();
     const { data } = await supabase.from("formas_pagamento").select("*").order("nome");
     setFormasPagamento(data ?? []);
-  }, [supabase]);
+  }, []);
 
   useEffect(() => {
     fetchFormasPagamento();
@@ -52,6 +52,7 @@ export default function FormasPagamentoPage() {
     e.preventDefault();
     setLoading(true);
 
+    const supabase = createClient();
     if (editingId) {
       await supabase.from("formas_pagamento").update({ nome }).eq("id", editingId);
     } else {
@@ -69,6 +70,7 @@ export default function FormasPagamentoPage() {
 
   const handleDelete = async (id: string) => {
     if (!confirm("Tem certeza que deseja excluir esta forma de pagamento?")) return;
+    const supabase = createClient();
     await supabase.from("formas_pagamento").delete().eq("id", id);
     fetchFormasPagamento();
   };
