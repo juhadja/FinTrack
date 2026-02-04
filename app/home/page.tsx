@@ -40,8 +40,10 @@ export default function HomePage() {
   const [chartData, setChartData] = useState<{ categoria: string; total: number }[]>([]);
   const [paymentMethodChartData, setPaymentMethodChartData] = useState<{ formaPagamento: string; total: number }[]>([]);
   const [mesesDisponiveis, setMesesDisponiveis] = useState<string[]>([]);
-  const mesAtualFormatado = format(new Date(), "yyyy-MM");
-  const [chartPeriod, setChartPeriod] = useState<ChartPeriod>(mesAtualFormatado);
+  const [chartPeriod, setChartPeriod] = useState<ChartPeriod>(() => {
+    if (typeof window === 'undefined') return "all";
+    return format(new Date(), "yyyy-MM");
+  });
   const [loading, setLoading] = useState(true);
   const [proximasParcelas, setProximasParcelas] = useState<Record<string, Array<{
     id: string;
