@@ -18,11 +18,12 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import Link from "next/link";
-import { DollarSign, ArrowRight, TrendingDown, Wallet, CreditCard, CalendarRange } from "lucide-react";
+import { DollarSign, ArrowRight, TrendingDown, Wallet, CreditCard, CalendarRange, Calendar } from "lucide-react";
 import { ExpensesByCategoryChart } from "@/components/expenses-by-category-chart";
 import { ExpensesByPaymentMethodChart } from "@/components/expenses-by-payment-method-chart";
 import { AppHeader } from "@/components/app-header";
 import { Badge } from "@/components/ui/badge";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -42,6 +43,20 @@ export default function HomePage() {
   const mesAtualFormatado = format(new Date(), "yyyy-MM");
   const [chartPeriod, setChartPeriod] = useState<ChartPeriod>(mesAtualFormatado);
   const [loading, setLoading] = useState(true);
+  const [proximasParcelas, setProximasParcelas] = useState<Record<string, Array<{
+    id: string;
+    valor: number;
+    descricao: string;
+    numero_parcela_atual: number;
+    numero_parcelas: number;
+    categoria: string;
+  }>>>({});
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     const checkUser = async () => {
@@ -157,6 +172,42 @@ export default function HomePage() {
       });
       const paymentData = Array.from(formasPagamentoMap, ([formaPagamento, total]) => ({ formaPagamento, total }));
       setPaymentMethodChartData(paymentData);
+
+      // Buscar próximas parcelas (gastos parcelados com data futura)
+      const hoje = new Date().toISOString().split("T")[0];
+      const { data: parcelasFuturas } = await supabase
+        .from("gastos")
+        .select("id, valor, descricao, data, numero_parcela_atual, numero_parcelas, categorias_gastos(nome)")
+        .eq("eh_parcelado", true)
+        .gte("data", hoje)
+        .order("data", { ascending: true });
+
+      // Agrupar parcelas por mês
+      const parcelasPorMes: Record<string, Array<{
+        id: string;
+        valor: number;
+        descricao: string;
+        numero_parcela_atual: number;
+        numero_parcelas: number;
+        categoria: string;
+      }>> = {};
+
+      parcelasFuturas?.forEach((parcela) => {
+        const mesAno = format(new Date(parcela.data + "T00:00:00"), "yyyy-MM");
+        if (!parcelasPorMes[mesAno]) {
+          parcelasPorMes[mesAno] = [];
+        }
+        parcelasPorMes[mesAno].push({
+          id: parcela.id,
+          valor: parcela.valor,
+          descricao: parcela.descricao || "Sem descrição",
+          numero_parcela_atual: parcela.numero_parcela_atual || 1,
+          numero_parcelas: parcela.numero_parcelas || 1,
+          categoria: (parcela.categorias_gastos as unknown as { nome: string })?.nome || "Sem categoria",
+        });
+      });
+
+      setProximasParcelas(parcelasPorMes);
 
       setLoading(false);
     };
@@ -385,6 +436,92 @@ export default function HomePage() {
               </div>
             )}
           </div>
+
+          {/* Seção de Próximas Parcelas */}
+          {Object.keys(proximasParcelas).length > 0 && (
+            <div className="space-y-3 sm:space-y-4">
+              <h3 className="text-lg sm:text-xl lg:text-2xl text-foreground font-semibold flex items-center gap-2">
+                <Calendar className="text-primary" size={20} />
+                Próximas Parcelas
+              </h3>
+
+              {loading || !mounted ? (
+                <div className="space-y-2">
+                  {[1, 2, 3].map((i) => (
+                    <div
+                      key={i}
+                      className="border border-primary/20 bg-background/50 rounded-lg p-4"
+                    >
+                      <div className="flex items-center justify-between mb-4">
+                        <Skeleton className="h-6 w-48" />
+                        <Skeleton className="h-6 w-24" />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <Accordion type="multiple" className="w-full space-y-2">
+                  {Object.entries(proximasParcelas)
+                    .sort(([mesA], [mesB]) => mesA.localeCompare(mesB))
+                    .map(([mesAno, parcelas]) => {
+                      const [ano, mes] = mesAno.split("-");
+                      const data = new Date(parseInt(ano), parseInt(mes) - 1);
+                      const nomeMes = format(data, "MMMM 'de' yyyy", { locale: ptBR });
+                      const nomeFormatado = nomeMes.charAt(0).toUpperCase() + nomeMes.slice(1);
+                      const totalMes = parcelas.reduce((acc, p) => acc + p.valor, 0);
+
+                      return (
+                        <AccordionItem
+                          key={mesAno}
+                          value={mesAno}
+                          className="border border-primary bg-background rounded-lg px-4 "
+                        >
+                          <AccordionTrigger className="hover:no-underline py-4">
+                            <div className="flex items-center justify-between w-full pr-4">
+                              <span className="text-base sm:text-lg text-foreground font-semibold">
+                                {nomeFormatado}
+                              </span>
+                              <Badge variant="outline" className="border-red-500 text-red-500">
+                                {totalMes.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                              </Badge>
+                            </div>
+                          </AccordionTrigger>
+                          <AccordionContent className="pb-4">
+                            <div className="space-y-3 pt-2">
+                              {parcelas.map((parcela) => (
+                                <div
+                                  key={parcela.id}
+                                  className="flex items-center justify-between p-3 rounded-lg border border-primary/20  bg-primary/5 transition-colors"
+                                >
+                                  <div className="flex-1">
+                                    <p className="font-semibold text-foreground text-sm sm:text-base">
+                                      {parcela.descricao}
+                                    </p>
+                                    <div className="flex flex-wrap items-center gap-2 mt-1">
+                                      <Badge variant="outline" className="text-xs border-primary/30 text-primary">
+                                        {parcela.categoria}
+                                      </Badge>
+                                      <span className="text-xs text-foreground/60">
+                                        Parcela {parcela.numero_parcela_atual}/{parcela.numero_parcelas}
+                                      </span>
+                                    </div>
+                                  </div>
+                                  <div className="text-right">
+                                    <p className="font-bold text-red-500 text-sm sm:text-base">
+                                      {parcela.valor.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                                    </p>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </AccordionContent>
+                        </AccordionItem>
+                      );
+                    })}
+                </Accordion>
+              )}
+            </div>
+          )}
         </div>
       </main>
     </div>

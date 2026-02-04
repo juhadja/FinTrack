@@ -513,7 +513,7 @@ export default function GastosPage() {
           {/* Filtros de busca */}
           <Card className="border-primary/20 bg-background">
             <CardHeader
-              className="cursor-pointer hover:bg-primary/5 transition-colors pb-3"
+              className="cursor-pointer transition-colors pb-3"
               onClick={() => setMostrarFiltros(!mostrarFiltros)}
             >
               <div className="flex items-center justify-between">
@@ -529,7 +529,7 @@ export default function GastosPage() {
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="text-primary hover:text-primary/80"
+                  className="text-primary hover:text-background hover:bg-primary cursor-pointer"
                 >
                   {mostrarFiltros ? "Ocultar" : "Mostrar"}
                 </Button>
