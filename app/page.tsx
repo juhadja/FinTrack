@@ -60,21 +60,21 @@ export default function LandingPage() {
 
           {/* Features */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mt-16">
-            <div className="p-6 rounded-lg border border-primary/20 bg-background/50 text-center flex flex-col items-center">
+            <div className="p-6 rounded-lg border border-primary/50 bg-primary/10 text-center flex flex-col items-center">
               <div className="text-primary text-3xl mb-3"><BarChart3 size={32} /></div>
               <h3 className="text-lg font-semibold text-primary mb-2">Controle Total</h3>
               <p className="text-foreground/70 text-sm">
                 Visualize todas as suas transações em um só lugar
               </p>
             </div>
-            <div className="p-6 rounded-lg border border-primary/20 bg-background/50 text-center flex flex-col items-center">
+            <div className="p-6 rounded-lg border border-primary/50 bg-primary/10 text-center flex flex-col items-center">
               <div className="text-primary text-3xl mb-3"><Lock size={32} /></div>
               <h3 className="text-lg font-semibold text-primary mb-2">Seguro</h3>
               <p className="text-foreground/70 text-sm">
                 Seus dados protegidos com as melhores tecnologias
               </p>
             </div>
-            <div className="p-6 rounded-lg border border-primary/20 bg-background/50 text-center flex flex-col items-center">
+            <div className="p-6 rounded-lg border border-primary/50 bg-primary/10 text-center flex flex-col items-center">
               <div className="text-primary text-3xl mb-3"><Smartphone size={32} /></div>
               <h3 className="text-lg font-semibold text-primary mb-2">Responsivo</h3>
               <p className="text-foreground/70 text-sm">
