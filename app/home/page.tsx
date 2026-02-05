@@ -40,10 +40,7 @@ export default function HomePage() {
   const [chartData, setChartData] = useState<{ categoria: string; total: number }[]>([]);
   const [paymentMethodChartData, setPaymentMethodChartData] = useState<{ formaPagamento: string; total: number }[]>([]);
   const [mesesDisponiveis, setMesesDisponiveis] = useState<string[]>([]);
-  const [chartPeriod, setChartPeriod] = useState<ChartPeriod>(() => {
-    if (typeof window === 'undefined') return "all";
-    return format(new Date(), "yyyy-MM");
-  });
+  const [chartPeriod, setChartPeriod] = useState<ChartPeriod>("all");
   const [loading, setLoading] = useState(true);
   const [proximasParcelas, setProximasParcelas] = useState<Record<string, Array<{
     id: string;
@@ -58,6 +55,7 @@ export default function HomePage() {
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setMounted(true);
+    setChartPeriod(format(new Date(), "yyyy-MM"));
   }, []);
 
   useEffect(() => {
@@ -411,7 +409,7 @@ export default function HomePage() {
             ) : (
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4">
                 {/* Gráfico de Gastos por Categoria */}
-                <Card className="border-primary bg-background/50 hover:bg-primary/10">
+                <Card className="border-primary/50 bg-primary/5">
                   <CardHeader className="pb-3">
                     <CardTitle className="text-sm sm:text-base lg:text-lg text-foreground flex items-center gap-2">
                       <TrendingDown className="text-red-500" size={16} />
@@ -424,7 +422,7 @@ export default function HomePage() {
                 </Card>
 
                 {/* Gráfico de Gastos por Forma de Pagamento */}
-                <Card className="border-primary bg-background/50 hover:bg-primary/10">
+                <Card className="border-primary/50 bg-primary/5">
                   <CardHeader className="pb-3">
                     <CardTitle className="text-sm sm:text-base lg:text-lg text-foreground flex items-center gap-2">
                       <CreditCard className="text-red-500" size={16} />
